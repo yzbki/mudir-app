@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import confetti from 'canvas-confetti'
-
-type User = {
-  id: number
-  name: string
-  email: string
-}
+import type { User } from './types/User'
+import Sidebar from './components/Sidebar'
+import Dashboard from './pages/Dashboard'
+import Users from './pages/Users'
+import Employees from './pages/Employees'
+import Inventory from './pages/Inventory'
+import Tasks from './pages/Tasks'
+import Customers from './pages/Customers'
 
 function App() {
   // User Variables
@@ -202,47 +204,13 @@ function App() {
   return (
     <div className="app">
 
-      <aside className="sidebar">
-        <div className="logo">MUDIR</div>
-
-        <nav className="navigation">
-          <button onClick={() => setPage('dashboard')}>
-            Dashboard
-          </button>
-
-          <button onClick={() => setPage('employees')}>
-            Employees
-          </button>
-
-          <button onClick={() => setPage('inventory')}>
-            Inventory
-          </button>
-
-          <button onClick={() => setPage('tasks')}>
-            Tasks
-          </button>
-
-          <button onClick={() => setPage('customers')}>
-            Customers
-          </button>
-
-          <button
-            onClick={() => {
-              setPage('users')
-              loadUsers()
-            }}
-          >
-            Users
-          </button>
-        </nav>
-
-        <button
-          className="login-button"
-          onClick={user ? logout : () => setMode('login')}
-        >
-          {user ? 'Logout' : 'Login'}
-        </button>
-      </aside>
+      <Sidebar
+        setPage={setPage}
+        loadUsers={loadUsers}
+        user={user}
+        logout={logout}
+        setMode={setMode}
+      />
 
       <main className="main-content">
 
@@ -338,37 +306,30 @@ function App() {
           <div className="account-container">
 
           {page === 'dashboard' && (
-            <>
-              <h1>Dashboard</h1>
-
-              <div className="account-card">
-                <h2>Welcome, {user.name}</h2>
-
-                <p>{user.email}</p>
-
-                <button
-                  className="delete-button"
-                  onClick={deleteAccount}
-                >
-                  Delete Account
-                </button>
-              </div>
-            </>
+            <Dashboard
+              user={user}
+              deleteAccount={deleteAccount}
+            />
           )}
 
           {page === 'users' && (
-            <>
-              <h1>Users</h1>
+            <Users users={users}/>
+          )}
 
-              <div className="users-list">
-                {users.map((u) => (
-                  <div className="user-card" key={u.id}>
-                    <h2>{u.name}</h2>
-                    <p>{u.email}</p>
-                  </div>
-                ))}
-              </div>
-            </>
+          {page === 'employees' && (
+            <Employees />
+          )}
+
+          {page === 'inventory' && (
+            <Inventory />
+          )}
+
+          {page === 'tasks' && (
+            <Tasks />
+          )}
+
+          {page === 'customers' && (
+            <Customers />
           )}
 
         </div>
