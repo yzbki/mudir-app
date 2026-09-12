@@ -9,14 +9,13 @@ function Employees() {
             Manage your business employees.
           </p>
         </div>
-
-        <button className="primary-button">
-          + Add Employee
-        </button>
       </div>
 
-      <div className="stats-grid">
+      <button className="primary-button page-action-button">
+        + Add Employee
+      </button>
 
+      <div className="stats-grid">
         <div className="stat-card">
           <span>Total Employees</span>
           <strong>0</strong>
@@ -31,21 +30,14 @@ function Employees() {
           <span>Managers</span>
           <strong>0</strong>
         </div>
-
       </div>
 
       <div className="empty-state">
-
         <h2>No employees yet</h2>
 
         <p>
           Add employees to start managing your team.
         </p>
-
-        <button className="primary-button">
-          Add Your First Employee
-        </button>
-
       </div>
     </>
   )

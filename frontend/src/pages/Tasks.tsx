@@ -9,14 +9,9 @@ function Tasks() {
             Create and manage work for your team.
           </p>
         </div>
-
-        <button className="primary-button">
-          + Create Task
-        </button>
       </div>
 
       <div className="task-filters">
-
         <button className="filter-button active">
           All
         </button>
@@ -33,20 +28,17 @@ function Tasks() {
           Completed
         </button>
 
+        <button className="primary-button task-action-button">
+          + Create Task
+        </button>
       </div>
 
       <div className="empty-state">
-
         <h2>No tasks yet</h2>
 
         <p>
           Create tasks and assign them to employees.
         </p>
-
-        <button className="primary-button">
-          Create Your First Task
-        </button>
-
       </div>
     </>
   )

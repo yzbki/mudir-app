@@ -28,16 +28,16 @@ function Sidebar({
             Employees
           </button>
 
+          <button onClick={() => setPage('customers')}>
+            Customers
+          </button>
+
           <button onClick={() => setPage('inventory')}>
             Inventory
           </button>
 
           <button onClick={() => setPage('tasks')}>
             Tasks
-          </button>
-
-          <button onClick={() => setPage('customers')}>
-            Customers
           </button>
 
           <button

@@ -9,14 +9,13 @@ function Inventory() {
             Track products and stock levels.
           </p>
         </div>
-
-        <button className="primary-button">
-          + Add Item
-        </button>
       </div>
 
-      <div className="stats-grid">
+      <button className="primary-button page-action-button">
+        + Add Item
+      </button>
 
+      <div className="stats-grid">
         <div className="stat-card">
           <span>Total Items</span>
           <strong>0</strong>
@@ -31,22 +30,14 @@ function Inventory() {
           <span>Out of Stock</span>
           <strong>0</strong>
         </div>
-
       </div>
 
       <div className="empty-state">
-
         <h2>Your inventory is empty</h2>
 
         <p>
-          Add products or supplies to start tracking
-          your inventory.
+          Add products or supplies to start tracking your inventory.
         </p>
-
-        <button className="primary-button">
-          Add Your First Item
-        </button>
-
       </div>
     </>
   )

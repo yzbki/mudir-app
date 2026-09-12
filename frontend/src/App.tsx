@@ -320,16 +320,16 @@ function App() {
             <Employees />
           )}
 
+          {page === 'customers' && (
+            <Customers />
+          )}
+
           {page === 'inventory' && (
             <Inventory />
           )}
 
           {page === 'tasks' && (
             <Tasks />
-          )}
-
-          {page === 'customers' && (
-            <Customers />
           )}
 
         </div>

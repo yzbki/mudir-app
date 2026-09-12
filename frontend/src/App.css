@@ -62,7 +62,7 @@
   margin-top: auto;
 }
 
-/* Main content */
+/* Main Content */
 
 .main-content {
   flex: 1;
@@ -70,7 +70,6 @@
   padding: 48px;
   background-color: #f7f8fa;
   color: #172b4d;
-
   display: flex;
   justify-content: left;
   align-items: left;
@@ -87,29 +86,6 @@
 .main-content p {
   margin: 0 0 16px;
   color: #5e6c84;
-}
-
-/* Forms */
-
-.main-content input {
-  display: block;
-  width: 320px;
-  max-width: 100%;
-  margin-bottom: 12px;
-  padding: 11px 13px;
-  border: 1px solid #dfe1e6;
-  border-radius: 6px;
-  background-color: white;
-  color: #172b4d;
-  font-family: inherit;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.main-content input:focus {
-  border-color: #172b4d;
-  box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.12);
 }
 
 /* Buttons */
@@ -136,59 +112,9 @@
   transform: scale(0.95);
 }
 
-.auth-container {
-  width: 100%;
-  max-width: 420px;
-}
-
-.auth-container h1 {
-  margin-bottom: 8px;
-}
-
-.auth-subtitle {
-  margin-bottom: 28px !important;
-}
-
-.main-content input {
-  width: 100%;
-  margin-bottom: 14px;
-}
-
 .primary-button {
   width: 100%;
   margin-top: 6px;
-}
-
-.switch-button {
-  background: transparent !important;
-  color: #0052cc !important;
-  width: 100%;
-  margin-top: 10px;
-}
-
-.switch-button:hover {
-  background: rgba(0, 82, 204, 0.06) !important;
-}
-
-.message {
-  margin-top: 20px !important;
-}
-
-.account-container {
-  max-width: 700px;
-}
-
-.account-card {
-  background: white;
-  border: 1px solid #dfe1e6;
-  border-radius: 10px;
-  padding: 28px;
-  max-width: 500px;
-}
-
-.account-card h2 {
-  margin-top: 0;
-  color: #172b4d;
 }
 
 .delete-button {
@@ -198,6 +124,29 @@
 
 .delete-button:hover {
   background-color: #bf2600 !important;
+}
+
+/* Forms */
+
+.main-content input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  border: 1px solid #dfe1e6;
+  border-radius: 6px;
+  background-color: white;
+  color: #172b4d;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.main-content input:focus {
+  border-color: #172b4d;
+  box-shadow: 0 0 0 2px rgba(0, 82, 204, 0.12);
 }
 
 .password-container {
@@ -243,6 +192,59 @@
   cursor: pointer;
 }
 
+/* Authentication */
+
+.auth-container {
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-container h1 {
+  margin-bottom: 8px;
+}
+
+.auth-subtitle {
+  margin-bottom: 28px !important;
+}
+
+.switch-button {
+  background: transparent !important;
+  color: #0052cc !important;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.switch-button:hover {
+  background: rgba(0, 82, 204, 0.06) !important;
+}
+
+.message {
+  margin-top: 20px !important;
+}
+
+/* Account */
+
+.account-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.account-card {
+  background: white;
+  border: 1px solid #dfe1e6;
+  border-radius: 10px;
+  padding: 28px;
+  max-width: 500px;
+}
+
+.account-card h2 {
+  margin-top: 0;
+  color: #172b4d;
+}
+
+/* Users */
+
 .users-list {
   display: flex;
   flex-direction: column;
@@ -266,4 +268,140 @@
 .user-card p {
   margin: 0;
   color: #687386;
+}
+
+/* Page Header */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  margin-bottom: 40px;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.page-subtitle {
+  margin: 8px 0 0 !important;
+  color: #687386 !important;
+}
+
+/* Page Actions */
+
+.page-action-button {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 0 40px !important;
+}
+
+/* Statistics */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background: white;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  padding: 22px;
+}
+
+.stat-card span {
+  display: block;
+  color: #687386;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.stat-card strong {
+  display: block;
+  font-size: 30px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+/* Empty States */
+
+.empty-state {
+  background: white;
+  border: 1px solid #e2e5ea;
+  border-radius: 10px;
+  padding: 70px 30px;
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin: 0 0 10px;
+  color: #172b4d;
+}
+
+.empty-state p {
+  margin: 0 !important;
+  color: #687386 !important;
+}
+
+/* Tasks */
+
+.task-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.filter-button {
+  white-space: nowrap;
+  border: 1px solid #e2e5ea !important;
+  background: white !important;
+  color: #172b4d !important;
+  border-radius: 7px;
+  padding: 9px 16px !important;
+  margin-right: 0 !important;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.filter-button:hover {
+  background: #f1f3f6 !important;
+}
+
+.filter-button.active {
+  background: #1f305e !important;
+  color: white !important;
+  border-color: #1f305e !important;
+}
+
+.task-action-button {
+  flex: 1;
+  width: auto !important;
+  max-width: none;
+  margin: 0 !important;
+  padding: 9px 16px !important;
+  box-sizing: border-box;
+}
+
+/* Dashboard */
+
+.dashboard-account {
+  max-width: 400px;
+  padding: 18px 20px;
+}
+
+.dashboard-account h2 {
+  margin: 0 0 12px;
+}
+
+.dashboard-account p {
+  margin: 0 0 8px !important;
+}
+
+.dashboard-account .delete-button {
+  margin-top: 14px;
 }
