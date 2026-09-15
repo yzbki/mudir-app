@@ -21,23 +21,28 @@ function Sidebar({
 
         <nav className="navigation">
           <button onClick={() => setPage('dashboard')}>
+            <img src="/interface-icons/dashboard.svg" alt="" />
             Dashboard
           </button>
 
           <button onClick={() => setPage('employees')}>
+            <img src="/interface-icons/employees.svg" alt="" />
             Employees
           </button>
 
-          <button onClick={() => setPage('customers')}>
-            Customers
-          </button>
-
           <button onClick={() => setPage('inventory')}>
+            <img src="/interface-icons/inventory.svg" alt="" />
             Inventory
           </button>
 
           <button onClick={() => setPage('tasks')}>
+            <img src="/interface-icons/tasks.svg" alt="" />
             Tasks
+          </button>
+
+          <button onClick={() => setPage('customers')}>
+            <img src="/interface-icons/customers.svg" alt="" />
+            Customers
           </button>
 
           <button
@@ -46,6 +51,7 @@ function Sidebar({
               loadUsers()
             }}
           >
+            <img src="/interface-icons/users.svg" alt="" />
             Users
           </button>
         </nav>

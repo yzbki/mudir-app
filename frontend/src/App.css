@@ -405,3 +405,18 @@
 .dashboard-account .delete-button {
   margin-top: 14px;
 }
+
+/* Icons */
+
+.navigation button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navigation button img {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  filter: brightness(0) invert(1);
+}
