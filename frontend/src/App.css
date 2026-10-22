@@ -15,6 +15,7 @@
 
 .sidebar {
   width: 240px;
+  flex-shrink: 0;
   min-height: 100vh;
   background: #0e1115;
   border-right: 1px solid #252a33;
@@ -22,17 +23,72 @@
   flex-direction: column;
   padding: 24px 16px;
   box-sizing: border-box;
+  transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 78px;
+  padding-left: 12px;
+}
+
+.sidebar-toggle {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  transform: translateY(5px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 0;
+  border: 1px solid #252a33;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-toggle:hover {
+  background: #151920;
+}
+
+.sidebar-toggle span {
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: #929aa7;
 }
 
 .logo {
-  font-family: "Manrope", "Inter", system-ui, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
   color: #e9edf3;
-  font-size: 54px;
-  font-weight: 800;
-  letter-spacing: -0.08em;
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.06em;
+  line-height: 1;
   padding: 0;
-  margin: 12px 12px 12px;
+  margin: 0;
   text-align: left;
+}
+
+.sidebar-collapsed {
+  width: 72px;
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.sidebar-collapsed .sidebar-header {
+  justify-content: center;
+  padding-left: 0;
+}
+
+.sidebar-collapsed .logo,
+.sidebar-collapsed .navigation button > span,
+.sidebar-collapsed .login-button > span:not(.login-icon) {
+  display: none;
 }
 
 .navigation {
@@ -76,6 +132,10 @@
   margin-top: auto;
 }
 
+.login-button .login-icon {
+  display: none;
+}
+
 .navigation button {
   display: flex;
   align-items: center;
@@ -89,6 +149,23 @@
   opacity: 0.7;
   filter: brightness(0) invert(1);
   transition: opacity 0.2s ease;
+}
+
+.sidebar-collapsed .navigation button,
+.sidebar-collapsed .login-button {
+  justify-content: center;
+  padding-right: 8px;
+  padding-left: 8px;
+}
+
+.sidebar-collapsed .navigation button {
+  gap: 0;
+}
+
+.sidebar-collapsed .login-button .login-icon {
+  display: inline;
+  font-size: 18px;
+  line-height: 18px;
 }
 
 .navigation button:hover img {
@@ -525,6 +602,10 @@
     width: 210px;
   }
 
+  .sidebar.sidebar-collapsed {
+    width: 72px;
+  }
+
   .main-content {
     padding: 36px;
   }
@@ -547,9 +628,25 @@
     padding: 14px;
   }
 
+  .sidebar.sidebar-collapsed {
+    width: 100%;
+  }
+
+  .sidebar-header {
+    min-height: 0;
+  }
+
   .logo {
-    font-size: 38px;
-    margin: 4px 8px 12px;
+    font-size: 40px;
+  }
+
+  .sidebar-collapsed .sidebar-header {
+    justify-content: flex-end;
+  }
+
+  .sidebar-collapsed .navigation,
+  .sidebar-collapsed .login-button {
+    display: none;
   }
 
   .navigation {
