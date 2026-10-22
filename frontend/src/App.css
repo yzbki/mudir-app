@@ -69,9 +69,13 @@
   font-weight: 700;
   letter-spacing: -0.06em;
   line-height: 1;
+  max-width: 150px;
+  overflow: hidden;
   padding: 0;
   margin: 0;
   text-align: left;
+  white-space: nowrap;
+  transition: max-width 0.2s ease, opacity 0.15s ease, transform 0.2s ease;
 }
 
 .sidebar-collapsed {
@@ -85,10 +89,10 @@
   padding-left: 0;
 }
 
-.sidebar-collapsed .logo,
-.sidebar-collapsed .navigation button > span,
-.sidebar-collapsed .login-button > span:not(.login-icon) {
-  display: none;
+.sidebar-collapsed .logo {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 .navigation {
@@ -96,6 +100,7 @@
   flex-direction: column;
   gap: 4px;
   margin-top: 12px;
+  overflow: hidden;
 }
 
 .navigation button,
@@ -130,10 +135,34 @@
 
 .login-button {
   margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .login-button .login-icon {
-  display: none;
+  display: inline-block;
+  width: 0;
+  flex: 0 0 auto;
+  overflow: hidden;
+  opacity: 0;
+  transition: width 0.2s ease, opacity 0.15s ease;
+}
+
+.navigation button > span,
+.login-button > span:not(.login-icon) {
+  max-width: 140px;
+  overflow: hidden;
+  opacity: 1;
+  white-space: nowrap;
+  transition: max-width 0.2s ease, opacity 0.15s ease, transform 0.2s ease;
+}
+
+.sidebar-collapsed .navigation button > span,
+.sidebar-collapsed .login-button > span:not(.login-icon) {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
 }
 
 .navigation button {
@@ -163,7 +192,8 @@
 }
 
 .sidebar-collapsed .login-button .login-icon {
-  display: inline;
+  width: 18px;
+  opacity: 1;
   font-size: 18px;
   line-height: 18px;
 }
@@ -645,12 +675,13 @@
   }
 
   .sidebar-collapsed .sidebar-header {
-    justify-content: flex-end;
+    justify-content: space-between;
   }
 
-  .sidebar-collapsed .navigation,
-  .sidebar-collapsed .login-button {
-    display: none;
+  .sidebar-collapsed .logo {
+    max-width: 150px;
+    opacity: 1;
+    transform: none;
   }
 
   .navigation {
@@ -658,6 +689,19 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     margin-top: 0;
+    max-height: 320px;
+    opacity: 1;
+    visibility: visible;
+    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease, visibility 0s linear;
+  }
+
+  .sidebar-collapsed .navigation {
+    max-height: 0;
+    margin-top: 0;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition-delay: 0s, 0s, 0s, 0.25s;
   }
 
   .navigation button {
@@ -670,9 +714,25 @@
   }
 
   .login-button {
+    max-height: 44px;
     min-height: 44px;
     margin-top: 6px;
     padding: 10px;
+    overflow: hidden;
+    visibility: visible;
+    transition: max-height 0.25s ease, min-height 0.25s ease, margin 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear;
+  }
+
+  .sidebar-collapsed .login-button {
+    max-height: 0;
+    min-height: 0;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition-delay: 0s, 0s, 0s, 0s, 0s, 0.25s;
   }
 
   .main-content {
