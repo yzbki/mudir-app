@@ -23,10 +23,11 @@
   flex-direction: column;
   padding: 24px 16px;
   box-sizing: border-box;
-  transition: width 0.2s ease, padding 0.2s ease;
+  transition: width 0.25s ease, padding 0.25s ease;
 }
 
 .sidebar-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -37,6 +38,7 @@
 .sidebar-toggle {
   width: 32px;
   height: 32px;
+  margin-left: auto;
   flex-shrink: 0;
   transform: translateY(5px);
   display: flex;
@@ -63,25 +65,25 @@
 }
 
 .logo {
+  position: absolute;
+  left: 12px;
   font-family: "Segoe UI", Arial, sans-serif;
   color: #e9edf3;
   font-size: 48px;
   font-weight: 700;
   letter-spacing: -0.06em;
   line-height: 1;
-  max-width: 150px;
-  overflow: hidden;
   padding: 0;
   margin: 0;
   text-align: left;
   white-space: nowrap;
-  transition: max-width 0.2s ease, opacity 0.15s ease, transform 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
 .sidebar-collapsed {
   width: 72px;
-  padding-right: 12px;
-  padding-left: 12px;
+  padding-right: 8px;
+  padding-left: 16px;
 }
 
 .sidebar-collapsed .sidebar-header {
@@ -90,9 +92,11 @@
 }
 
 .sidebar-collapsed .logo {
-  max-width: 0;
   opacity: 0;
-  transform: translateX(-8px);
+}
+
+.sidebar-collapsed .sidebar-toggle {
+  margin-right: auto;
 }
 
 .navigation {
@@ -146,23 +150,22 @@
   flex: 0 0 auto;
   overflow: hidden;
   opacity: 0;
-  transition: width 0.2s ease, opacity 0.15s ease;
+  transition: width 0.25s ease, opacity 0.25s ease;
 }
 
 .navigation button > span,
 .login-button > span:not(.login-icon) {
-  max-width: 140px;
+  width: 140px;
+  flex: 0 0 140px;
   overflow: hidden;
   opacity: 1;
   white-space: nowrap;
-  transition: max-width 0.2s ease, opacity 0.15s ease, transform 0.2s ease;
+  transition: opacity 0.25s ease;
 }
 
 .sidebar-collapsed .navigation button > span,
 .sidebar-collapsed .login-button > span:not(.login-icon) {
-  max-width: 0;
   opacity: 0;
-  transform: translateX(-8px);
 }
 
 .navigation button {
@@ -182,13 +185,8 @@
 
 .sidebar-collapsed .navigation button,
 .sidebar-collapsed .login-button {
-  justify-content: center;
-  padding-right: 8px;
-  padding-left: 8px;
-}
-
-.sidebar-collapsed .navigation button {
-  gap: 0;
+  justify-content: flex-start;
+  gap: 12px;
 }
 
 .sidebar-collapsed .login-button .login-icon {
@@ -634,6 +632,8 @@
 
   .sidebar.sidebar-collapsed {
     width: 72px;
+    padding-right: 8px;
+    padding-left: 16px;
   }
 
   .main-content {
@@ -676,12 +676,25 @@
 
   .sidebar-collapsed .sidebar-header {
     justify-content: space-between;
+    padding-left: 12px;
   }
 
   .sidebar-collapsed .logo {
-    max-width: 150px;
     opacity: 1;
-    transform: none;
+  }
+
+  .sidebar-collapsed .sidebar-toggle {
+    margin-right: 0;
+  }
+
+  .sidebar.sidebar-collapsed {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .sidebar-collapsed .navigation button > span,
+  .sidebar-collapsed .login-button > span:not(.login-icon) {
+    opacity: 1;
   }
 
   .navigation {
@@ -692,7 +705,7 @@
     max-height: 320px;
     opacity: 1;
     visibility: visible;
-    transition: max-height 0.25s ease, opacity 0.2s ease, margin 0.25s ease, visibility 0s linear;
+    transition: max-height 0.25s ease, opacity 0.25s ease, margin 0.25s ease, visibility 0s linear;
   }
 
   .sidebar-collapsed .navigation {
@@ -720,7 +733,7 @@
     padding: 10px;
     overflow: hidden;
     visibility: visible;
-    transition: max-height 0.25s ease, min-height 0.25s ease, margin 0.25s ease, padding 0.25s ease, opacity 0.2s ease, visibility 0s linear;
+    transition: max-height 0.25s ease, min-height 0.25s ease, margin 0.25s ease, padding 0.25s ease, opacity 0.25s ease, visibility 0s linear;
   }
 
   .sidebar-collapsed .login-button {
