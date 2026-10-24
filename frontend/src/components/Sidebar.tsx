@@ -7,6 +7,7 @@ type SidebarProps = {
   user: User | null
   logout: () => void
   setMode: (mode: 'login' | 'signup') => void
+  isLoginPage: boolean
 }
 
 function Sidebar({
@@ -15,6 +16,7 @@ function Sidebar({
   user,
   logout,
   setMode,
+  isLoginPage,
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
@@ -37,27 +39,27 @@ function Sidebar({
       </div>
 
       <nav className="navigation">
-        <button aria-label="Dashboard" title="Dashboard" onClick={() => setPage('dashboard')}>
+        <button aria-label="Dashboard" title="Dashboard" disabled={!user} onClick={() => setPage('dashboard')}>
           <img src="/interface-icons/dashboard.svg" alt="" />
           <span>Dashboard</span>
         </button>
 
-        <button aria-label="Employees" title="Employees" onClick={() => setPage('employees')}>
+        <button aria-label="Employees" title="Employees" disabled={!user} onClick={() => setPage('employees')}>
           <img src="/interface-icons/employees.svg" alt="" />
           <span>Employees</span>
         </button>
 
-        <button aria-label="Inventory" title="Inventory" onClick={() => setPage('inventory')}>
+        <button aria-label="Inventory" title="Inventory" disabled={!user} onClick={() => setPage('inventory')}>
           <img src="/interface-icons/inventory.svg" alt="" />
           <span>Inventory</span>
         </button>
 
-        <button aria-label="Tasks" title="Tasks" onClick={() => setPage('tasks')}>
+        <button aria-label="Tasks" title="Tasks" disabled={!user} onClick={() => setPage('tasks')}>
           <img src="/interface-icons/tasks.svg" alt="" />
           <span>Tasks</span>
         </button>
 
-        <button aria-label="Customers" title="Customers" onClick={() => setPage('customers')}>
+        <button aria-label="Customers" title="Customers" disabled={!user} onClick={() => setPage('customers')}>
           <img src="/interface-icons/customers.svg" alt="" />
           <span>Customers</span>
         </button>
@@ -65,6 +67,7 @@ function Sidebar({
         <button
           aria-label="Users"
           title="Users"
+          disabled={!user}
           onClick={() => {
             setPage('users')
             loadUsers()
@@ -76,10 +79,11 @@ function Sidebar({
       </nav>
 
       <button
-        className="login-button"
+        className={`login-button${isLoginPage ? ' login-button-active' : ''}`}
         onClick={user ? logout : () => setMode('login')}
         aria-label={user ? 'Logout' : 'Login'}
         title={user ? 'Logout' : 'Login'}
+        aria-current={isLoginPage ? 'page' : undefined}
       >
         <span className="login-icon" aria-hidden="true">↪</span>
         <span>{user ? 'Logout' : 'Login'}</span>

@@ -132,6 +132,30 @@
   color: #e9edf3;
 }
 
+.navigation button:disabled {
+  color: #626a76;
+  cursor: default;
+  transition: none;
+}
+
+.navigation button:disabled:hover {
+  background: transparent;
+  color: #626a76;
+}
+
+.navigation button:disabled:active {
+  transform: none;
+}
+
+.navigation button:disabled:hover img {
+  opacity: 0.7;
+}
+
+.login-button-active {
+  background: #151920;
+  color: #e9edf3;
+}
+
 .navigation button:active,
 .login-button:active {
   transform: scale(0.97);

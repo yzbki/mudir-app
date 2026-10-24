@@ -210,6 +210,7 @@ function App() {
         user={user}
         logout={logout}
         setMode={setMode}
+        isLoginPage={!user && mode === 'login'}
       />
 
       <main className="main-content">
