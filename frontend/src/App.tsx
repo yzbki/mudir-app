@@ -318,7 +318,7 @@ function App() {
           )}
 
           {page === 'employees' && (
-            <Employees />
+            <Employees user={user} />
           )}
 
           {page === 'customers' && (

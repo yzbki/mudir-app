@@ -614,6 +614,62 @@
   box-sizing: border-box;
 }
 
+.business-section {
+  background: #111419;
+  border: 1px solid #252a33;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 28px;
+  max-width: 900px;
+}
+
+.business-section h2 {
+  margin: 0 0 16px;
+  color: #e9edf3;
+  font-size: 22px;
+}
+
+.business-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 500px;
+}
+
+.employee-form {
+  max-width: 900px;
+}
+
+.role-select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  border: 1px solid #252a33;
+  border-radius: 8px;
+  background: #111419;
+  color: #e9edf3;
+  font-family: "Manrope", system-ui, sans-serif;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.team-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.team-card {
+  min-height: 110px;
+}
+
+.small-empty-state {
+  padding: 28px 20px;
+}
+
 /* ================================
    Dashboard
 ================================ */
