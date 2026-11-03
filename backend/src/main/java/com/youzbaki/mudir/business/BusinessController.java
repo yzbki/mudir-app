@@ -11,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/businesses")
@@ -42,6 +43,18 @@ public class BusinessController {
         return ResponseEntity.ok(businessService.getBusinessesForUser(user));
     }
 
+    @GetMapping("/{businessId}/members")
+    public ResponseEntity<?> getMembers(
+            Authentication authentication,
+            @PathVariable Long businessId) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            return ResponseEntity.ok(businessService.getMembersForBusiness(actor, businessId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PostMapping("/{businessId}/employees")
     public ResponseEntity<?> assignEmployee(
             Authentication authentication,
@@ -51,6 +64,20 @@ public class BusinessController {
             User actor = userService.getUserByEmail(authentication.getName());
             BusinessMemberResponse response = businessService.assignEmployee(actor, businessId, request);
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{businessId}/employees/{userId}")
+    public ResponseEntity<?> removeEmployee(
+            Authentication authentication,
+            @PathVariable Long businessId,
+            @PathVariable Long userId) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            businessService.removeEmployee(actor, businessId, userId);
+            return ResponseEntity.ok(Map.of("message", "Employee removed"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

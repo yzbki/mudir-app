@@ -666,6 +666,45 @@
   min-height: 110px;
 }
 
+.member-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.small-select {
+  margin-bottom: 0 !important;
+  flex: 1;
+}
+
+.business-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.business-chip {
+  border: 1px solid #252a33 !important;
+  background: #151920 !important;
+  color: #e9edf3 !important;
+  margin: 0 !important;
+}
+
+.business-chip.active {
+  background: #315A9E !important;
+  border-color: #315A9E !important;
+}
+
+.danger-button {
+  background: #b42318 !important;
+  color: #fff !important;
+}
+
+.danger-button:hover {
+  background: #d92d20 !important;
+}
+
 .small-empty-state {
   padding: 28px 20px;
 }

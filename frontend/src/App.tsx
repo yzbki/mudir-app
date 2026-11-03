@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import confetti from 'canvas-confetti'
+import type { Business } from './types/Business'
 import type { User } from './types/User'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
@@ -11,87 +12,121 @@ import Tasks from './pages/Tasks'
 import Customers from './pages/Customers'
 
 function App() {
-  // User Variables
   const [user, setUser] = useState<User | null>(null)
   const [users, setUsers] = useState<User[]>([])
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  // Login Variables
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [message, setMessage] = useState('Loading...')
   const [showPassword, setShowPassword] = useState(false)
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
 
-  // Page Variables
   const [page, setPage] = useState('dashboard')
 
-  useEffect(() => {
-    const token =
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('token')
+  const loadBusinesses = async (explicitToken?: string) => {
+    const token = explicitToken || localStorage.getItem('token') || sessionStorage.getItem('token')
+
+    if (!token) {
+      setBusinesses([])
+      setSelectedBusinessId(null)
+      return
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/businesses', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch businesses')
+      }
+
+      const data = await response.json()
+      setBusinesses(data)
+
+      if (data.length > 0) {
+        setSelectedBusinessId((current) => {
+          if (current && data.some((business: Business) => business.id === current)) {
+            return current
+          }
+          return data[0].id
+        })
+      } else {
+        setSelectedBusinessId(null)
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  const ensureUserSession = async () => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
     if (!token) {
       setMessage('')
       return
     }
 
-    fetch('http://localhost:8080/api/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Invalid token')
-        }
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
-        return response.json()
-      })
-      .then((data) => {
-        setUser(data)
-        setMessage('')
-      })
-      .catch(() => {
-        localStorage.removeItem('token')
-        sessionStorage.removeItem('token')
-        setUser(null)
-        setMessage('')
-      })
+      if (!response.ok) {
+        throw new Error('Invalid token')
+      }
+
+      const data = await response.json()
+      setUser(data)
+      setMessage('')
+    } catch (error) {
+      console.error(error)
+      localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
+      setUser(null)
+      setMessage('')
+    }
+  }
+
+  useEffect(() => {
+    ensureUserSession()
   }, [])
 
-  const handleSubmit = async () => {
-    const endpoint =
-      mode === 'signup'
-        ? '/api/auth/register'
-        : '/api/auth/login'
+  useEffect(() => {
+    if (!user) {
+      setBusinesses([])
+      setSelectedBusinessId(null)
+      return
+    }
 
-    const body =
-      mode === 'signup'
-        ? { name, email, password }
-        : { email, password }
+    loadBusinesses()
+  }, [user])
+
+  const handleSubmit = async () => {
+    const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login'
+    const body = mode === 'signup' ? { name, email, password } : { email, password }
 
     try {
-      const response = await fetch(
-        `http://localhost:8080${endpoint}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(body),
-        }
-      )
+      const response = await fetch(`http://localhost:8080${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
 
       const data = await response.json()
 
       if (!response.ok) {
-        setMessage(
-          typeof data === 'string'
-            ? data
-            : 'Something went wrong'
-        )
+        setMessage(typeof data === 'string' ? data : 'Something went wrong')
         return
       }
 
@@ -126,6 +161,7 @@ function App() {
       setEmail('')
       setPassword('')
       setMessage('')
+      await loadBusinesses(data.token)
     } catch (error) {
       console.error(error)
       setMessage('Failed to connect to backend')
@@ -136,36 +172,33 @@ function App() {
     localStorage.removeItem('token')
     sessionStorage.removeItem('token')
     setUser(null)
+    setBusinesses([])
+    setSelectedBusinessId(null)
     setMessage('')
   }
 
   const deleteAccount = async () => {
-    const token =
-      localStorage.getItem('token') ||
-      sessionStorage.getItem('token')
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
     if (!token) return
 
-    const confirmed = window.confirm(
-      'Are you sure you want to delete your account?'
-    )
+    const confirmed = window.confirm('Are you sure you want to delete your account?')
 
     if (!confirmed) return
 
-    const response = await fetch(
-      'http://localhost:8080/api/auth/account',
-      {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    )
+    const response = await fetch('http://localhost:8080/api/auth/account', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
 
     if (response.ok) {
       localStorage.removeItem('token')
       sessionStorage.removeItem('token')
       setUser(null)
+      setBusinesses([])
+      setSelectedBusinessId(null)
       setMessage('Account deleted successfully')
     } else {
       setMessage('Failed to delete account')
@@ -173,29 +206,51 @@ function App() {
   }
 
   const loadUsers = async () => {
-  const token =
-    localStorage.getItem('token') ||
-    sessionStorage.getItem('token')
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
-  if (!token) return
+    if (!token) return
 
-  try {
-    const response = await fetch(
-      'http://localhost:8080/api/users',
-      {
+    try {
+      const response = await fetch('http://localhost:8080/api/users', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch users')
       }
-    )
 
-    if (!response.ok) {
-      throw new Error('Failed to fetch users')
+      const data = await response.json()
+      setUsers(data)
+    } catch (error) {
+      console.error(error)
     }
+  }
 
-    const data = await response.json()
+  const createBusiness = async (name: string) => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
-    setUsers(data)
+    if (!token || !name.trim()) return
+
+    try {
+      const response = await fetch('http://localhost:8080/api/businesses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: name.trim() }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(typeof data === 'string' ? data : 'Failed to create business')
+      }
+
+      await loadBusinesses(token)
+      setPage('dashboard')
     } catch (error) {
       console.error(error)
     }
@@ -203,7 +258,6 @@ function App() {
 
   return (
     <div className="app">
-
       <Sidebar
         setPage={setPage}
         loadUsers={loadUsers}
@@ -214,15 +268,9 @@ function App() {
       />
 
       <main className="main-content">
-
         {!user ? (
           <div className="auth-container">
-
-            <h1>
-              {mode === 'login'
-                ? 'Welcome back'
-                : 'Create your account'}
-            </h1>
+            <h1>{mode === 'login' ? 'Welcome back' : 'Create your account'}</h1>
 
             <p className="auth-subtitle">
               {mode === 'login'
@@ -264,7 +312,7 @@ function App() {
               </button>
             </div>
 
-            { mode === 'login' && (
+            {mode === 'login' && (
               <label className="stay-logged-in">
                 <input
                   type="checkbox"
@@ -275,67 +323,49 @@ function App() {
               </label>
             )}
 
-            <button
-              className="primary-button"
-              onClick={handleSubmit}
-            >
+            <button className="primary-button" onClick={handleSubmit}>
               {mode === 'login' ? 'Login' : 'Sign Up'}
             </button>
 
             <button
               className="switch-button"
               onClick={() => {
-                setMode(
-                  mode === 'login'
-                    ? 'signup'
-                    : 'login'
-                )
+                setMode(mode === 'login' ? 'signup' : 'login')
                 setMessage('')
               }}
             >
-              {mode === 'login'
-                ? 'Create an account'
-                : 'Already have an account? Log in'}
+              {mode === 'login' ? 'Create an account' : 'Already have an account? Log in'}
             </button>
 
-            {message && (
-              <p className="message">{message}</p>
-            )}
-
+            {message && <p className="message">{message}</p>}
           </div>
         ) : (
           <div className="account-container">
+            {page === 'dashboard' && (
+              <Dashboard
+                user={user}
+                deleteAccount={deleteAccount}
+                businesses={businesses}
+                selectedBusinessId={selectedBusinessId}
+                setSelectedBusinessId={setSelectedBusinessId}
+                createBusiness={createBusiness}
+              />
+            )}
 
-          {page === 'dashboard' && (
-            <Dashboard
-              user={user}
-              deleteAccount={deleteAccount}
-            />
-          )}
-
-          {page === 'users' && (
-            <Users users={users}/>
-          )}
-
-          {page === 'employees' && (
-            <Employees user={user} />
-          )}
-
-          {page === 'customers' && (
-            <Customers />
-          )}
-
-          {page === 'inventory' && (
-            <Inventory />
-          )}
-
-          {page === 'tasks' && (
-            <Tasks />
-          )}
-
-        </div>
+            {page === 'users' && <Users users={users} />}
+            {page === 'employees' && (
+              <Employees
+                user={user}
+                businesses={businesses}
+                selectedBusinessId={selectedBusinessId}
+                refreshBusinesses={loadBusinesses}
+              />
+            )}
+            {page === 'customers' && <Customers />}
+            {page === 'inventory' && <Inventory />}
+            {page === 'tasks' && <Tasks />}
+          </div>
         )}
-
       </main>
     </div>
   )

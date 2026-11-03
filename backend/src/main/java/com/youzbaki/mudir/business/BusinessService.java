@@ -9,7 +9,6 @@ import com.youzbaki.mudir.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,6 +54,19 @@ public class BusinessService {
                 .toList();
     }
 
+    public List<BusinessMemberResponse> getMembersForBusiness(User actor, Long businessId) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business) && !business.getOwner().getId().equals(actor.getId())) {
+            throw new IllegalArgumentException("You do not have access to this business");
+        }
+
+        return businessMemberRepository.findByBusiness(business).stream()
+                .map(this::toMemberResponse)
+                .toList();
+    }
+
     @Transactional
     public BusinessMemberResponse assignEmployee(User actor, Long businessId, BusinessMemberRequest request) {
         Business business = businessRepository.findById(businessId)
@@ -75,19 +87,47 @@ public class BusinessService {
             throw new IllegalArgumentException("Cannot assign OWNER role to another user");
         }
 
+        if (targetUser.getId().equals(business.getOwner().getId())) {
+            throw new IllegalArgumentException("Owner cannot be reassigned");
+        }
+
+        if (targetUser.getId().equals(actor.getId())) {
+            throw new IllegalArgumentException("You cannot change your own role");
+        }
+
         BusinessMember existing = businessMemberRepository.findByBusinessAndUser(business, targetUser)
                 .orElseGet(() -> new BusinessMember(business, targetUser, request.role()));
 
         existing.setRole(request.role());
         BusinessMember saved = businessMemberRepository.save(existing);
 
-        return new BusinessMemberResponse(
-                saved.getId(),
-                business.getId(),
-                targetUser.getId(),
-                targetUser.getName(),
-                saved.getRole()
-        );
+        return toMemberResponse(saved);
+    }
+
+    @Transactional
+    public void removeEmployee(User actor, Long businessId, Long userId) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner or a manager can remove employees");
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (targetUser.getId().equals(business.getOwner().getId())) {
+            throw new IllegalArgumentException("Owner cannot be removed");
+        }
+
+        if (targetUser.getId().equals(actor.getId())) {
+            throw new IllegalArgumentException("You cannot remove yourself");
+        }
+
+        BusinessMember member = businessMemberRepository.findByBusinessAndUser(business, targetUser)
+                .orElseThrow(() -> new IllegalArgumentException("Employee is not assigned to this business"));
+
+        businessMemberRepository.delete(member);
     }
 
     public boolean isOwnerOrManager(User user, Business business) {
@@ -107,6 +147,16 @@ public class BusinessService {
                 business.getName(),
                 business.getOwner().getId(),
                 business.getOwner().getName()
+        );
+    }
+
+    private BusinessMemberResponse toMemberResponse(BusinessMember member) {
+        return new BusinessMemberResponse(
+                member.getId(),
+                member.getBusiness().getId(),
+                member.getUser().getId(),
+                member.getUser().getName(),
+                member.getRole()
         );
     }
 }
