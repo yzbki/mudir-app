@@ -1,151 +1,63 @@
 package com.youzbaki.mudir.auth;
 
-import com.youzbaki.mudir.security.JwtService;
-import com.youzbaki.mudir.user.User;
-import com.youzbaki.mudir.user.UserRepository;
-
+import com.youzbaki.mudir.auth.dto.AuthResponse;
+import com.youzbaki.mudir.auth.dto.LoginRequest;
+import com.youzbaki.mudir.auth.dto.RegisterRequest;
+import com.youzbaki.mudir.auth.dto.UserResponse;
+import com.youzbaki.mudir.service.AuthService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final AuthService authService;
 
-    public AuthController(
-            UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
-
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+    public AuthController(AuthService authService) {
+        this.authService = authService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(
-            @RequestBody RegisterRequest request) {
-
-        if (userRepository.findByEmail(request.email()).isPresent()) {
-            return ResponseEntity.badRequest()
-                    .body("Email already registered");
+    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
+        try {
+            return ResponseEntity.ok(authService.register(request));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-
-        User user = new User(
-                request.email(),
-                passwordEncoder.encode(request.password()),
-                request.name()
-        );
-
-        userRepository.save(user);
-
-        String token = jwtService.generateToken(user.getEmail());
-
-        return ResponseEntity.ok(
-                new AuthResponse(
-                        token,
-                        user.getId(),
-                        user.getName(),
-                        user.getEmail()
-                )
-        );
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(
-            @RequestBody LoginRequest request) {
-
-        User user = userRepository.findByEmail(request.email())
-                .orElse(null);
-
-        if (user == null ||
-                !passwordEncoder.matches(
-                        request.password(),
-                        user.getPassword())) {
-
-            return ResponseEntity.status(401)
-                    .body("Invalid email or password");
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            return ResponseEntity.ok(authService.login(request));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
         }
-
-        String token = jwtService.generateToken(user.getEmail());
-
-        return ResponseEntity.ok(
-                new AuthResponse(
-                        token,
-                        user.getId(),
-                        user.getName(),
-                        user.getEmail()
-                )
-        );
     }
 
     @GetMapping("/me")
     public ResponseEntity<?> me(
             org.springframework.security.core.Authentication authentication) {
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.status(404).body("User not found");
+        try {
+            String email = authentication.getName();
+            return ResponseEntity.ok(authService.getCurrentUser(email));
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
         }
-
-        return ResponseEntity.ok(
-                new UserResponse(
-                        user.getId(),
-                        user.getName(),
-                        user.getEmail()
-                )
-        );
     }
 
     @DeleteMapping("/account")
     public ResponseEntity<?> deleteAccount(
             org.springframework.security.core.Authentication authentication) {
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElse(null);
-
-        if (user == null) {
-            return ResponseEntity.status(404).body("User not found");
+        try {
+            String email = authentication.getName();
+            authService.deleteAccount(email);
+            return ResponseEntity.ok("Account deleted");
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
         }
-
-        userRepository.delete(user);
-
-        return ResponseEntity.ok("Account deleted");
     }
-
-    public record RegisterRequest(
-            String email,
-            String password,
-            String name
-    ) {}
-
-    public record LoginRequest(
-            String email,
-            String password
-    ) {}
-
-    public record AuthResponse(
-            String token,
-            Long id,
-            String name,
-            String email
-    ) {}
-
-    public record UserResponse(
-            Long id,
-            String name,
-            String email
-    ) {}
 }
