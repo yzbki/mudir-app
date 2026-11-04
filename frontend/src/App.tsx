@@ -58,6 +58,7 @@ function App() {
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
   const [page, setPage] = useState('dashboard')
 
@@ -71,7 +72,7 @@ function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/businesses', {
+      const response = await fetch(`${API_BASE_URL}/api/businesses`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -108,7 +109,7 @@ function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -214,7 +215,7 @@ function App() {
     const body = mode === 'signup' ? { name, email, password } : { email, password }
 
     try {
-      const response = await fetch(`http://localhost:8080${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +261,7 @@ function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/google', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -320,7 +321,7 @@ function App() {
 
     if (!confirmed) return
 
-    const response = await fetch('http://localhost:8080/api/auth/account', {
+    const response = await fetch(`${API_BASE_URL}/api/auth/account`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -345,7 +346,7 @@ function App() {
     if (!token) return
 
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -382,7 +383,7 @@ function App() {
     if (!token || !name.trim()) return
 
     try {
-      const response = await fetch('http://localhost:8080/api/businesses', {
+      const response = await fetch(`${API_BASE_URL}/api/businesses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -413,7 +414,7 @@ function App() {
     if (!token) return
 
     try {
-      const response = await fetch(`http://localhost:8080/api/businesses/${businessId}/details`, {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${businessId}/details`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -442,7 +443,7 @@ function App() {
     if (!token) return
 
     try {
-      const response = await fetch(`http://localhost:8080/api/businesses/${businessId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${businessId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

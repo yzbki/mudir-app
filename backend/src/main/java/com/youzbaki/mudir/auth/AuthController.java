@@ -1,10 +1,8 @@
 package com.youzbaki.mudir.auth;
 
-import com.youzbaki.mudir.auth.dto.AuthResponse;
 import com.youzbaki.mudir.auth.dto.GoogleLoginRequest;
 import com.youzbaki.mudir.auth.dto.LoginRequest;
 import com.youzbaki.mudir.auth.dto.RegisterRequest;
-import com.youzbaki.mudir.auth.dto.UserResponse;
 import com.youzbaki.mudir.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;

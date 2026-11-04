@@ -4,6 +4,8 @@ import 'react-calendar/dist/Calendar.css'
 import type { Business, BusinessMember, BusinessRole } from '../types/Business'
 import type { User } from '../types/User'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+
 type EmployeesProps = {
   user: User | null
   businesses: Business[]
@@ -34,7 +36,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
     if (!token) return
 
     try {
-      const response = await fetch('http://localhost:8080/api/users', {
+      const response = await fetch(`${API_BASE_URL}/api/users`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -64,7 +66,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
     if (!token) return
 
     try {
-      const response = await fetch(`http://localhost:8080/api/businesses/${selectedBusinessId}/members`, {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusinessId}/members`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -107,7 +109,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
     }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/businesses/${selectedBusinessId}/employees`, {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusinessId}/employees`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +192,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
     }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/businesses/${selectedBusinessId}/employees`, {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusinessId}/employees`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +233,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
     }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/businesses/${selectedBusinessId}/employees/${member.userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusinessId}/employees/${member.userId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,

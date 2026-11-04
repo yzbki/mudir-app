@@ -2,6 +2,8 @@
 import type { Business, BusinessMember } from '../types/Business'
 import type { User } from '../types/User'
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
+
 type BusinessDetailField = 'address' | 'phone' | 'description'
 
 type DashboardProps = {
@@ -58,7 +60,7 @@ function Dashboard({
 
     const loadBusinessMembers = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/businesses/${selectedBusinessId}/members`, {
+        const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusinessId}/members`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
