@@ -1,6 +1,7 @@
 package com.youzbaki.mudir.business;
 
 import com.youzbaki.mudir.business.dto.BusinessCreateRequest;
+import com.youzbaki.mudir.business.dto.BusinessDetailsRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberResponse;
 import com.youzbaki.mudir.business.dto.BusinessResponse;
@@ -63,6 +64,20 @@ public class BusinessController {
         try {
             User actor = userService.getUserByEmail(authentication.getName());
             BusinessMemberResponse response = businessService.assignEmployee(actor, businessId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{businessId}/details")
+    public ResponseEntity<?> updateBusinessDetails(
+            Authentication authentication,
+            @PathVariable Long businessId,
+            @RequestBody BusinessDetailsRequest request) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            BusinessResponse response = businessService.updateBusinessDetails(actor, businessId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

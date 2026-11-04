@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { Business, BusinessMember } from '../types/Business'
 import type { User } from '../types/User'
+
+type BusinessDetailField = 'address' | 'phone' | 'description'
 
 type DashboardProps = {
   user: User
   deleteAccount: () => void
+  updateBusinessDetails: (
+    businessId: number,
+    details: { address: string; phone: string; description: string },
+  ) => Promise<void>
   deleteBusiness: (businessId: number) => Promise<void>
   businesses: Business[]
   selectedBusinessId: number | null
@@ -15,6 +21,7 @@ type DashboardProps = {
 function Dashboard({
   user,
   deleteAccount,
+  updateBusinessDetails,
   deleteBusiness,
   businesses,
   selectedBusinessId,
@@ -25,6 +32,13 @@ function Dashboard({
   const [message, setMessage] = useState('')
   const [businessMembers, setBusinessMembers] = useState<BusinessMember[]>([])
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
+  const [detailDrafts, setDetailDrafts] = useState({
+    address: '',
+    phone: '',
+    description: '',
+  })
+  const [editingDetail, setEditingDetail] = useState<BusinessDetailField | null>(null)
+  const [savingDetail, setSavingDetail] = useState<BusinessDetailField | null>(null)
 
   const selectedBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
   const canDeleteBusiness = Boolean(selectedBusiness && selectedBusiness.ownerId === user.id)
@@ -65,6 +79,16 @@ function Dashboard({
     void loadBusinessMembers()
   }, [selectedBusinessId])
 
+  useEffect(() => {
+    setDetailDrafts({
+      address: selectedBusiness?.address ?? '',
+      phone: selectedBusiness?.phone ?? '',
+      description: selectedBusiness?.description ?? '',
+    })
+    setEditingDetail(null)
+    setSavingDetail(null)
+  }, [selectedBusinessId, businesses])
+
   const employeeCount = businessMembers.filter((member) => member.role === 'EMPLOYEE').length
   const managerCount = businessMembers.filter((member) => member.role === 'MANAGER').length
 
@@ -103,6 +127,58 @@ function Dashboard({
       setMessage(error instanceof Error ? error.message : 'Failed to delete business.')
     }
   }
+
+  const getSelectedBusinessDetail = (field: BusinessDetailField) => {
+    if (!selectedBusiness) {
+      return ''
+    }
+
+    if (field === 'address') {
+      return selectedBusiness.address ?? ''
+    }
+
+    if (field === 'phone') {
+      return selectedBusiness.phone ?? ''
+    }
+
+    return selectedBusiness.description ?? ''
+  }
+
+  const handleSaveBusinessDetail = async (field: BusinessDetailField) => {
+    if (!selectedBusiness) {
+      return
+    }
+
+    setSavingDetail(field)
+
+    try {
+      await updateBusinessDetails(selectedBusiness.id, {
+        address: field === 'address' ? detailDrafts.address : selectedBusiness.address ?? '',
+        phone: field === 'phone' ? detailDrafts.phone : selectedBusiness.phone ?? '',
+        description: field === 'description' ? detailDrafts.description : selectedBusiness.description ?? '',
+      })
+      setEditingDetail(null)
+      setMessage('Business details updated successfully.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update business details.')
+    } finally {
+      setSavingDetail(null)
+    }
+  }
+
+  const cancelBusinessDetailEdit = (field: BusinessDetailField) => {
+    setEditingDetail(null)
+    setDetailDrafts((current) => ({
+      ...current,
+      [field]: getSelectedBusinessDetail(field),
+    }))
+  }
+
+  const businessDetailFields: Array<{ key: BusinessDetailField; label: string; placeholder: string }> = [
+    { key: 'address', label: 'Address:', placeholder: 'Enter business address' },
+    { key: 'phone', label: 'Phone:', placeholder: 'Enter business phone' },
+    { key: 'description', label: 'Description:', placeholder: 'Enter business description' },
+  ]
 
   return (
     <>
@@ -189,9 +265,85 @@ function Dashboard({
               onChange={(event) => setBusinessName(event.target.value)}
             />
 
-            <button className="primary-button" onClick={handleCreateBusiness}>
+            <button className="primary-button" onClick={() => void handleCreateBusiness()}>
               Create Business
             </button>
+          </div>
+        )}
+
+        {selectedBusiness && (
+          <div className="business-details-panel">
+            <div className="business-detail-row">
+              <div className="business-detail-label">
+                <span>Name:</span>
+              </div>
+              <div className="business-detail-value business-detail-readonly">{selectedBusiness.name}</div>
+            </div>
+
+            {businessDetailFields.map(({ key, label, placeholder }) => {
+              const isEditing = editingDetail === key
+              const fieldValue = detailDrafts[key]
+
+              return (
+                <div className="business-detail-row" key={key}>
+                  <div className="business-detail-label">
+                    <span>{label}</span>
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        className="business-detail-edit-button"
+                        onClick={() => {
+                          setEditingDetail(key)
+                          setDetailDrafts((current) => ({
+                            ...current,
+                            [key]: getSelectedBusinessDetail(key),
+                          }))
+                        }}
+                        aria-label={`Edit ${label}`}
+                      >
+                        ✎
+                      </button>
+                    )}
+                  </div>
+
+                  {isEditing ? (
+                    <>
+                      <input
+                        type="text"
+                        placeholder={placeholder}
+                        value={fieldValue}
+                        onChange={(event) =>
+                          setDetailDrafts((current) => ({
+                            ...current,
+                            [key]: event.target.value,
+                          }))
+                        }
+                      />
+
+                      <div className="business-detail-actions">
+                        <button
+                          type="button"
+                          className="primary-button business-detail-save-button"
+                          onClick={() => void handleSaveBusinessDetail(key)}
+                          disabled={savingDetail === key}
+                        >
+                          {savingDetail === key ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          className="business-detail-cancel-button"
+                          onClick={() => cancelBusinessDetailEdit(key)}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="business-detail-value">{fieldValue || 'Not provided'}</div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
 

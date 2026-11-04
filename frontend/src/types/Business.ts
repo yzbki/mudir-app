@@ -5,6 +5,9 @@ export type Business = {
   name: string
   ownerId: number
   ownerName: string
+  address: string | null
+  phone: string | null
+  description: string | null
 }
 
 export type BusinessMember = {

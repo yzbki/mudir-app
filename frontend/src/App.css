@@ -701,6 +701,98 @@
   white-space: nowrap;
 }
 
+.business-details-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+  max-width: 720px;
+  width: 100%;
+}
+
+.business-detail-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 12px 18px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(37, 42, 51, 0.8);
+}
+
+.business-detail-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  font-weight: 400;
+  color: #a5acb7;
+  font-size: 14px;
+  line-height: 1.4;
+  min-height: 22px;
+  padding-right: 2px;
+}
+
+.business-detail-edit-button {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid #252a33;
+  color: #a7d8ff;
+  font-size: 10px;
+  line-height: 1;
+  margin: 0 !important;
+  flex-shrink: 0;
+  transform: none;
+}
+
+.business-detail-edit-button:hover {
+  background: #151920;
+}
+
+.business-detail-value {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #252a33;
+  border-radius: 8px;
+  background: rgba(17, 20, 25, 0.65);
+  color: #e9edf3;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.business-detail-readonly {
+  background: #0f1319;
+}
+
+.business-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  grid-column: 2;
+}
+
+.business-detail-save-button {
+  width: auto !important;
+  min-width: 120px;
+  margin: 0 !important;
+}
+
+.business-detail-cancel-button {
+  border: 1px solid #252a33 !important;
+  background: #111419 !important;
+  color: #e9edf3 !important;
+  margin: 0 !important;
+}
+
 .employee-form {
   max-width: 900px;
 }
@@ -754,6 +846,100 @@
   font-size: 14px;
   outline: none;
   box-sizing: border-box;
+}
+
+.schedule-section {
+  margin-top: 28px;
+}
+
+.schedule-calendar {
+  width: 100%;
+  max-width: 760px;
+  border: 1px solid #252a33;
+  border-radius: 12px;
+  background: #0b0d10 !important;
+  color: #ffffff;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.schedule-calendar.react-calendar {
+  background: #0b0d10 !important;
+  border-color: #252a33;
+  color: #ffffff;
+}
+
+.schedule-calendar .react-calendar__navigation,
+.schedule-calendar .react-calendar__viewContainer,
+.schedule-calendar .react-calendar__month-view,
+.schedule-calendar .react-calendar__month-view__days,
+.schedule-calendar .react-calendar__month-view__weekdays,
+.schedule-calendar .react-calendar__month-view__weekdays__weekday,
+.schedule-calendar .react-calendar__tile {
+  background: transparent;
+}
+
+.schedule-calendar .react-calendar__navigation button,
+.schedule-calendar .react-calendar__tile,
+.schedule-calendar .react-calendar__month-view__weekdays__weekday {
+  color: #ffffff;
+}
+
+.schedule-calendar .react-calendar__navigation {
+  margin-bottom: 10px;
+}
+
+.schedule-calendar .react-calendar__navigation button {
+  background: #111419 !important;
+  border: 1px solid #252a33;
+  border-radius: 8px;
+  color: #ffffff;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.schedule-calendar .react-calendar__navigation button:hover,
+.schedule-calendar .react-calendar__navigation button:focus {
+  background: #151920 !important;
+  border-color: #3a414d;
+}
+
+.schedule-calendar .react-calendar__month-view__weekdays__weekday {
+  color: #ffffff;
+  font-weight: 600;
+  background: transparent;
+}
+
+.schedule-calendar .react-calendar__tile {
+  border-radius: 8px;
+  background: #111419 !important;
+  border: 1px solid #1d222b;
+  color: #ffffff !important;
+}
+
+.schedule-calendar .react-calendar__tile:hover {
+  background: #151920 !important;
+  border-color: #3a414d;
+}
+
+.schedule-calendar .react-calendar__tile--now {
+  background: #111419 !important;
+  border-color: #315A9E;
+  box-shadow: inset 0 0 0 1px rgba(49, 90, 158, 0.7);
+}
+
+.schedule-calendar .react-calendar__tile--active {
+  background: linear-gradient(135deg, #315A9E 0%, #244d89 100%) !important;
+  color: #ffffff !important;
+  border-color: #315A9E;
+}
+
+.schedule-calendar .react-calendar__month-view__days__day--weekend {
+  color: #ffffff !important;
+}
+
+.schedule-calendar .react-calendar__month-view__days__day--neighboringMonth {
+  color: rgba(255, 255, 255, 0.45) !important;
+  background: #0f1319 !important;
 }
 
 .team-list {

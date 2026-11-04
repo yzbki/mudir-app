@@ -1,6 +1,7 @@
 package com.youzbaki.mudir.business;
 
 import com.youzbaki.mudir.business.dto.BusinessCreateRequest;
+import com.youzbaki.mudir.business.dto.BusinessDetailsRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberResponse;
 import com.youzbaki.mudir.business.dto.BusinessResponse;
@@ -105,6 +106,31 @@ public class BusinessService {
     }
 
     @Transactional
+    public BusinessResponse updateBusinessDetails(User actor, Long businessId, BusinessDetailsRequest request) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner or a manager can update business details");
+        }
+
+        if (request != null) {
+            if (request.address() != null) {
+                business.setAddress(request.address().trim().isEmpty() ? null : request.address().trim());
+            }
+            if (request.phone() != null) {
+                business.setPhone(request.phone().trim().isEmpty() ? null : request.phone().trim());
+            }
+            if (request.description() != null) {
+                business.setDescription(request.description().trim().isEmpty() ? null : request.description().trim());
+            }
+        }
+
+        Business savedBusiness = businessRepository.save(business);
+        return toBusinessResponse(savedBusiness);
+    }
+
+    @Transactional
     public void deleteBusiness(User actor, Long businessId) {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
@@ -158,7 +184,10 @@ public class BusinessService {
                 business.getId(),
                 business.getName(),
                 business.getOwner().getId(),
-                business.getOwner().getName()
+                business.getOwner().getName(),
+                business.getAddress(),
+                business.getPhone(),
+                business.getDescription()
         );
     }
 

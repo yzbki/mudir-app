@@ -17,6 +17,15 @@ public class Business {
     @Column(nullable = false)
     private String name;
 
+    @Column(length = 500)
+    private String address;
+
+    @Column(length = 50)
+    private String phone;
+
+    @Column(length = 2000)
+    private String description;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -42,6 +51,30 @@ public class Business {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public User getOwner() {

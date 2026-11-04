@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import confetti from 'canvas-confetti'
 import type { Business } from './types/Business'
@@ -362,6 +362,20 @@ function App() {
     }
   }
 
+  const parseResponseData = async (response: Response) => {
+    const text = await response.text()
+
+    if (!text) {
+      return null
+    }
+
+    try {
+      return JSON.parse(text)
+    } catch {
+      return text
+    }
+  }
+
   const createBusiness = async (name: string) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
@@ -377,7 +391,7 @@ function App() {
         body: JSON.stringify({ name: name.trim() }),
       })
 
-      const data = await response.json()
+      const data = await parseResponseData(response)
 
       if (!response.ok) {
         throw new Error(typeof data === 'string' ? data : 'Failed to create business')
@@ -387,6 +401,38 @@ function App() {
       setPage('dashboard')
     } catch (error) {
       console.error(error)
+    }
+  }
+
+  const updateBusinessDetails = async (
+    businessId: number,
+    details: { address: string; phone: string; description: string },
+  ) => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
+    if (!token) return
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/businesses/${businessId}/details`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(details),
+      })
+
+      const data = await parseResponseData(response)
+
+      if (!response.ok) {
+        throw new Error(typeof data === 'string' ? data : 'Failed to update business details')
+      }
+
+      await loadBusinesses(token)
+      setPage('dashboard')
+    } catch (error) {
+      console.error(error)
+      throw error
     }
   }
 
@@ -403,7 +449,7 @@ function App() {
         },
       })
 
-      const data = await response.json()
+      const data = await parseResponseData(response)
 
       if (!response.ok) {
         throw new Error(typeof data === 'string' ? data : 'Failed to delete business')
@@ -515,6 +561,7 @@ function App() {
               <Dashboard
                 user={user}
                 deleteAccount={deleteAccount}
+                updateBusinessDetails={updateBusinessDetails}
                 deleteBusiness={deleteBusiness}
                 businesses={businesses}
                 selectedBusinessId={selectedBusinessId}

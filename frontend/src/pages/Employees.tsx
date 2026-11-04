@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import Calendar from 'react-calendar'
+import 'react-calendar/dist/Calendar.css'
 import type { Business, BusinessMember, BusinessRole } from '../types/Business'
 import type { User } from '../types/User'
 
@@ -18,6 +20,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   const [selectedRole, setSelectedRole] = useState<BusinessRole>('EMPLOYEE')
   const [inviteEmail, setInviteEmail] = useState('')
   const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [selectedScheduleDate, setSelectedScheduleDate] = useState(new Date())
   const [message, setMessage] = useState('')
 
   const currentBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
@@ -383,6 +386,19 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
             })}
           </div>
         )}
+      </div>
+
+      <div className="business-section schedule-section">
+        <h2>Schedule</h2>
+        <Calendar
+          value={selectedScheduleDate}
+          onChange={(value) => {
+            if (value instanceof Date) {
+              setSelectedScheduleDate(value)
+            }
+          }}
+          className="schedule-calendar"
+        />
       </div>
 
       {message && <p className="message">{message}</p>}
