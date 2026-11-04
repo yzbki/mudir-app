@@ -698,6 +698,7 @@
   gap: 12px;
   width: 100%;
   flex-wrap: wrap;
+  margin-top: 20px;
 }
 
 .business-action-button {
