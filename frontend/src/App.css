@@ -425,10 +425,15 @@
 .google-button-container {
   width: 100%;
   margin-bottom: 4px;
+  display: flex;
+  justify-content: center;
 }
 
 .google-button-container > div {
   width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .message {
