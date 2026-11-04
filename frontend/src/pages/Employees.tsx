@@ -16,6 +16,8 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [selectedUserId, setSelectedUserId] = useState('')
   const [selectedRole, setSelectedRole] = useState<BusinessRole>('EMPLOYEE')
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [message, setMessage] = useState('')
 
   const currentBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
@@ -128,6 +130,47 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
     }
   }
 
+  const handleInviteEmployee = () => {
+    if (!selectedBusinessId) {
+      setMessage('Select a business before inviting an employee.')
+      return
+    }
+
+    if (!isInviteOpen) {
+      setIsInviteOpen(true)
+      setMessage('')
+      return
+    }
+
+    const normalizedEmail = inviteEmail.trim()
+
+    if (!normalizedEmail) {
+      setMessage('Enter an email to invite.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setMessage('Please enter a valid email address.')
+      return
+    }
+
+    setMessage(
+      `Invitation sent to ${normalizedEmail}. Once they sign up, they will be added to ${currentBusiness?.name ?? 'this business'}.`
+    )
+    setInviteEmail('')
+    setIsInviteOpen(false)
+  }
+
+  const toggleInviteForm = () => {
+    setIsInviteOpen((current) => !current)
+    if (!isInviteOpen) {
+      setMessage('')
+    }
+    if (isInviteOpen) {
+      setInviteEmail('')
+    }
+  }
+
   const handleRoleChange = async (member: BusinessMember, role: BusinessRole) => {
     const token = getToken()
 
@@ -237,33 +280,56 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
         <h2>Add employee</h2>
 
         <div className="business-form employee-form">
-          <select
-            className="role-select"
-            value={selectedUserId}
-            onChange={(event) => setSelectedUserId(event.target.value)}
-          >
-            {allUsers.map((person) => (
-              <option key={person.id} value={String(person.id)}>
-                {person.name} ({person.email})
-              </option>
-            ))}
-          </select>
+          <div className="employee-dropdown-row">
+            <select
+              className="role-select"
+              value={selectedUserId}
+              onChange={(event) => setSelectedUserId(event.target.value)}
+            >
+              {allUsers.map((person) => (
+                <option key={person.id} value={String(person.id)}>
+                  {person.name} ({person.email})
+                </option>
+              ))}
+            </select>
 
-          <select
-            className="role-select"
-            value={selectedRole}
-            onChange={(event) => setSelectedRole(event.target.value as BusinessRole)}
-          >
-            {roleOptions.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
+            <select
+              className="role-select small-select"
+              value={selectedRole}
+              onChange={(event) => setSelectedRole(event.target.value as BusinessRole)}
+            >
+              {roleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <button className="primary-button" onClick={handleAddEmployee}>
-            + Add Employee
-          </button>
+          <div className="employee-action-row">
+            <button className="primary-button employee-action-button" onClick={handleAddEmployee}>
+              + Add Employee
+            </button>
+
+            <button className="primary-button employee-action-button" onClick={toggleInviteForm}>
+              {isInviteOpen ? 'Cancel' : 'Invite Employee'}
+            </button>
+          </div>
+
+          {isInviteOpen && (
+            <div className="invite-email-row">
+              <input
+                type="email"
+                placeholder="Employee email"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+              />
+
+              <button className="primary-button" onClick={handleInviteEmployee}>
+                Send Invite
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

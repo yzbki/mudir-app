@@ -705,6 +705,41 @@
   max-width: 900px;
 }
 
+.employee-dropdown-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.employee-dropdown-row .role-select {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.employee-action-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.employee-action-button {
+  width: auto !important;
+  min-width: 160px;
+  margin: 0 !important;
+  white-space: nowrap;
+}
+
+.invite-email-row {
+  width: 100%;
+  max-width: 420px;
+}
+
+.invite-email-row input {
+  margin-bottom: 0;
+}
+
 .role-select {
   display: block;
   width: 100%;
