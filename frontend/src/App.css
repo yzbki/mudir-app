@@ -402,6 +402,35 @@
   background: #111419 !important;
 }
 
+.google-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 10px;
+  color: #68717d;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.google-divider::before,
+.google-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #252a33;
+}
+
+.google-button-container {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.google-button-container > div {
+  width: 100%;
+}
+
 .message {
   margin-top: 20px !important;
 }

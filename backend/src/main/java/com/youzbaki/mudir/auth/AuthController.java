@@ -1,6 +1,7 @@
 package com.youzbaki.mudir.auth;
 
 import com.youzbaki.mudir.auth.dto.AuthResponse;
+import com.youzbaki.mudir.auth.dto.GoogleLoginRequest;
 import com.youzbaki.mudir.auth.dto.LoginRequest;
 import com.youzbaki.mudir.auth.dto.RegisterRequest;
 import com.youzbaki.mudir.auth.dto.UserResponse;
@@ -33,6 +34,15 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             return ResponseEntity.ok(authService.login(request));
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<?> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+        try {
+            return ResponseEntity.ok(authService.loginWithGoogle(request.email()));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).body(e.getMessage());
         }

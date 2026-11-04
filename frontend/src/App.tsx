@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import confetti from 'canvas-confetti'
 import type { Business } from './types/Business'
@@ -10,6 +10,38 @@ import Employees from './pages/Employees'
 import Inventory from './pages/Inventory'
 import Tasks from './pages/Tasks'
 import Customers from './pages/Customers'
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string
+            callback: (response: { credential: string }) => void
+            auto_select?: boolean
+            cancel_on_tap_outside?: boolean
+          }) => void
+          renderButton: (
+            element: HTMLElement,
+            options: {
+              theme?: 'outline' | 'filled_blue'
+              size?: 'large' | 'medium'
+              width?: string | number
+              text?: string
+              shape?: 'rectangular' | 'pill'
+              logo_alignment?: 'left' | 'center'
+            },
+          ) => void
+          prompt: (options?: {
+            auto_select?: boolean
+            cancel_on_tap_outside?: boolean
+          }) => void
+        }
+      }
+    }
+  }
+}
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
@@ -24,6 +56,8 @@ function App() {
   const [message, setMessage] = useState('Loading...')
   const [showPassword, setShowPassword] = useState(false)
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
+  const googleButtonRef = useRef<HTMLDivElement | null>(null)
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 
   const [page, setPage] = useState('dashboard')
 
@@ -110,6 +144,71 @@ function App() {
     loadBusinesses()
   }, [user])
 
+  useEffect(() => {
+    if (user || mode !== 'login') {
+      return
+    }
+
+    if (!clientId) {
+      setMessage('Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart Vite.')
+      return
+    }
+
+    const renderGoogleButton = () => {
+      if (!window.google?.accounts?.id || !googleButtonRef.current) {
+        return
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: handleGoogleCredentialResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true,
+      })
+
+      googleButtonRef.current.innerHTML = ''
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        width: '100%',
+        text: 'continue_with',
+        shape: 'pill',
+        logo_alignment: 'left',
+      })
+    }
+
+    const googleScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]')
+
+    if (!window.google?.accounts?.id) {
+      if (googleScript) {
+        googleScript.addEventListener('load', renderGoogleButton, { once: true })
+      }
+      return
+    }
+
+    renderGoogleButton()
+  }, [user, mode, clientId])
+
+  const finalizeLogin = async (data: { token: string; id: number; name: string; email: string }) => {
+    if (stayLoggedIn) {
+      localStorage.setItem('token', data.token)
+    } else {
+      sessionStorage.setItem('token', data.token)
+    }
+
+    setUser({
+      id: data.id,
+      name: data.name,
+      email: data.email,
+    })
+
+    setName('')
+    setEmail('')
+    setPassword('')
+    setMessage('')
+    await loadBusinesses(data.token)
+  }
+
   const handleSubmit = async () => {
     const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login'
     const body = mode === 'signup' ? { name, email, password } : { email, password }
@@ -145,27 +244,62 @@ function App() {
         return
       }
 
-      if (stayLoggedIn) {
-        localStorage.setItem('token', data.token)
-      } else {
-        sessionStorage.setItem('token', data.token)
-      }
-
-      setUser({
-        id: data.id,
-        name: data.name,
-        email: data.email,
-      })
-
-      setName('')
-      setEmail('')
-      setPassword('')
-      setMessage('')
-      await loadBusinesses(data.token)
+      await finalizeLogin(data)
     } catch (error) {
       console.error(error)
       setMessage('Failed to connect to backend')
     }
+  }
+
+  const handleGoogleLogin = async (googleEmail: string) => {
+    const normalizedEmail = googleEmail.trim()
+
+    if (!normalizedEmail) {
+      setMessage('Google did not return an email.')
+      return
+    }
+
+    try {
+      const response = await fetch('http://localhost:8080/api/auth/google', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: normalizedEmail }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setMessage(typeof data === 'string' ? data : 'Google login failed')
+        return
+      }
+
+      await finalizeLogin(data)
+    } catch (error) {
+      console.error(error)
+      setMessage('Google login failed. Please try again.')
+    }
+  }
+
+  const decodeGoogleCredential = (credential: string) => {
+    const base64Url = credential.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
+    const decoded = window.atob(padded)
+    return JSON.parse(decoded) as { email?: string; name?: string }
+  }
+
+  const handleGoogleCredentialResponse = async (response: { credential: string }) => {
+    const payload = decodeGoogleCredential(response.credential)
+    const email = payload.email
+
+    if (!email) {
+      setMessage('Google did not return a valid email address.')
+      return
+    }
+
+    await handleGoogleLogin(email)
   }
 
   const logout = () => {
@@ -353,6 +487,15 @@ function App() {
             <button className="primary-button" onClick={handleSubmit}>
               {mode === 'login' ? 'Login' : 'Sign Up'}
             </button>
+
+            {mode === 'login' && (
+              <>
+                <div className="google-divider">
+                  <span>or</span>
+                </div>
+                <div ref={googleButtonRef} className="google-button-container" />
+              </>
+            )}
 
             <button
               className="switch-button"

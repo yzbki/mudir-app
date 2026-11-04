@@ -12,6 +12,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 public class AuthService {
 
@@ -29,12 +31,14 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.email()).isPresent()) {
+        String normalizedEmail = normalizeEmail(request.email());
+
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
             throw new IllegalArgumentException("Email already registered");
         }
 
         User user = new User(
-                request.email(),
+                normalizedEmail,
                 passwordEncoder.encode(request.password()),
                 request.name()
         );
@@ -52,10 +56,12 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
+        String normalizedEmail = normalizeEmail(request.email());
+
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
-        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+        if (user.getPassword() == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BadCredentialsException("Invalid email or password");
         }
 
@@ -69,8 +75,32 @@ public class AuthService {
         );
     }
 
+    public AuthResponse loginWithGoogle(String email) {
+        String normalizedEmail = normalizeEmail(email);
+
+        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
+            throw new BadCredentialsException("Google email is required");
+        }
+
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseGet(() -> userRepository.save(new User(
+                        normalizedEmail,
+                        null,
+                        buildDisplayNameFromEmail(normalizedEmail)
+                )));
+
+        String token = jwtService.generateToken(user.getEmail());
+
+        return new AuthResponse(
+                token,
+                user.getId(),
+                user.getName(),
+                user.getEmail()
+        );
+    }
+
     public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         return new UserResponse(
@@ -81,9 +111,18 @@ public class AuthService {
     }
 
     public void deleteAccount(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         userRepository.delete(user);
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String buildDisplayNameFromEmail(String email) {
+        String localPart = email.substring(0, email.indexOf('@'));
+        return localPart.substring(0, 1).toUpperCase(Locale.ROOT) + localPart.substring(1);
     }
 }
