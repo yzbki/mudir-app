@@ -229,32 +229,6 @@ function Dashboard({
                 </option>
               ))}
             </select>
-
-            <div className="business-action-row">
-              {selectedBusiness && (
-                <button
-                  type="button"
-                  className="delete-button business-action-button"
-                  onClick={handleDeleteBusiness}
-                  disabled={!canDeleteBusiness}
-                >
-                  Delete Business
-                </button>
-              )}
-
-              <button
-                type="button"
-                className="primary-button business-action-button"
-                onClick={() => {
-                  setIsCreateFormOpen((current) => !current)
-                  if (!isCreateFormOpen) {
-                    setMessage('')
-                  }
-                }}
-              >
-                {isCreateFormOpen ? 'Cancel' : '+ Create Business'}
-              </button>
-            </div>
           </div>
         )}
 
@@ -274,79 +248,105 @@ function Dashboard({
         )}
 
         {selectedBusiness && (
-          <div className="business-details-panel">
-            <div className="business-detail-row">
-              <div className="business-detail-label">
-                <span>Name:</span>
+          <>
+            <div className="business-details-panel">
+              <div className="business-detail-row">
+                <div className="business-detail-label">
+                  <span>Name:</span>
+                </div>
+                <div className="business-detail-value business-detail-readonly">{selectedBusiness.name}</div>
               </div>
-              <div className="business-detail-value business-detail-readonly">{selectedBusiness.name}</div>
-            </div>
 
-            {businessDetailFields.map(({ key, label, placeholder }) => {
-              const isEditing = editingDetail === key
-              const fieldValue = detailDrafts[key]
+              {businessDetailFields.map(({ key, label, placeholder }) => {
+                const isEditing = editingDetail === key
+                const fieldValue = detailDrafts[key]
 
-              return (
-                <div className="business-detail-row" key={key}>
-                  <div className="business-detail-label">
-                    <span>{label}</span>
-                    {!isEditing && (
-                      <button
-                        type="button"
-                        className="business-detail-edit-button"
-                        onClick={() => {
-                          setEditingDetail(key)
-                          setDetailDrafts((current) => ({
-                            ...current,
-                            [key]: getSelectedBusinessDetail(key),
-                          }))
-                        }}
-                        aria-label={`Edit ${label}`}
-                      >
-                        ✎
-                      </button>
+                return (
+                  <div className="business-detail-row" key={key}>
+                    <div className="business-detail-label">
+                      <span>{label}</span>
+                      {!isEditing && (
+                        <button
+                          type="button"
+                          className="business-detail-edit-button"
+                          onClick={() => {
+                            setEditingDetail(key)
+                            setDetailDrafts((current) => ({
+                              ...current,
+                              [key]: getSelectedBusinessDetail(key),
+                            }))
+                          }}
+                          aria-label={`Edit ${label}`}
+                        >
+                          ✎
+                        </button>
+                      )}
+                    </div>
+
+                    {isEditing ? (
+                      <>
+                        <input
+                          type="text"
+                          placeholder={placeholder}
+                          value={fieldValue}
+                          onChange={(event) =>
+                            setDetailDrafts((current) => ({
+                              ...current,
+                              [key]: event.target.value,
+                            }))
+                          }
+                        />
+
+                        <div className="business-detail-actions">
+                          <button
+                            type="button"
+                            className="primary-button business-detail-save-button"
+                            onClick={() => void handleSaveBusinessDetail(key)}
+                            disabled={savingDetail === key}
+                          >
+                            {savingDetail === key ? 'Saving...' : 'Save'}
+                          </button>
+                          <button
+                            type="button"
+                            className="business-detail-cancel-button"
+                            onClick={() => cancelBusinessDetailEdit(key)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="business-detail-value">{fieldValue || 'Not provided'}</div>
                     )}
                   </div>
+                )
+              })}
+            </div>
 
-                  {isEditing ? (
-                    <>
-                      <input
-                        type="text"
-                        placeholder={placeholder}
-                        value={fieldValue}
-                        onChange={(event) =>
-                          setDetailDrafts((current) => ({
-                            ...current,
-                            [key]: event.target.value,
-                          }))
-                        }
-                      />
+            <div className="business-action-row">
+              <button
+                type="button"
+                className="delete-button business-action-button"
+                onClick={handleDeleteBusiness}
+                disabled={!canDeleteBusiness}
+              >
+                Delete Business
+              </button>
 
-                      <div className="business-detail-actions">
-                        <button
-                          type="button"
-                          className="primary-button business-detail-save-button"
-                          onClick={() => void handleSaveBusinessDetail(key)}
-                          disabled={savingDetail === key}
-                        >
-                          {savingDetail === key ? 'Saving...' : 'Save'}
-                        </button>
-                        <button
-                          type="button"
-                          className="business-detail-cancel-button"
-                          onClick={() => cancelBusinessDetailEdit(key)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="business-detail-value">{fieldValue || 'Not provided'}</div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+              <button
+                type="button"
+                className="primary-button business-action-button"
+                onClick={() => {
+                  setIsCreateFormOpen((current) => !current)
+                  if (!isCreateFormOpen) {
+                    setMessage('')
+                  }
+                }}
+              >
+                {isCreateFormOpen ? 'Cancel' : '+ Create Business'}
+              </button>
+            </div>
+          </>
         )}
 
         {message && <p className="message">{message}</p>}
