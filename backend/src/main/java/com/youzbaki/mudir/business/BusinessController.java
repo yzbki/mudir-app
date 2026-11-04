@@ -69,6 +69,19 @@ public class BusinessController {
         }
     }
 
+    @DeleteMapping("/{businessId}")
+    public ResponseEntity<?> deleteBusiness(
+            Authentication authentication,
+            @PathVariable Long businessId) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            businessService.deleteBusiness(actor, businessId);
+            return ResponseEntity.ok(Map.of("message", "Business deleted"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{businessId}/employees/{userId}")
     public ResponseEntity<?> removeEmployee(
             Authentication authentication,

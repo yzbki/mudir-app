@@ -256,6 +256,33 @@ function App() {
     }
   }
 
+  const deleteBusiness = async (businessId: number) => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
+    if (!token) return
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/businesses/${businessId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(typeof data === 'string' ? data : 'Failed to delete business')
+      }
+
+      await loadBusinesses(token)
+      setPage('dashboard')
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  }
+
   return (
     <div className="app">
       <Sidebar
@@ -345,6 +372,7 @@ function App() {
               <Dashboard
                 user={user}
                 deleteAccount={deleteAccount}
+                deleteBusiness={deleteBusiness}
                 businesses={businesses}
                 selectedBusinessId={selectedBusinessId}
                 setSelectedBusinessId={setSelectedBusinessId}

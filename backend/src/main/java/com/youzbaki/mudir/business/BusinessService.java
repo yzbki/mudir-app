@@ -105,6 +105,18 @@ public class BusinessService {
     }
 
     @Transactional
+    public void deleteBusiness(User actor, Long businessId) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!business.getOwner().getId().equals(actor.getId())) {
+            throw new IllegalArgumentException("Only the business owner can delete this business");
+        }
+
+        businessRepository.delete(business);
+    }
+
+    @Transactional
     public void removeEmployee(User actor, Long businessId, Long userId) {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));

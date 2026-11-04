@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import type { Business } from '../types/Business'
+import { useEffect, useState } from 'react'
+import type { Business, BusinessMember } from '../types/Business'
 import type { User } from '../types/User'
 
 type DashboardProps = {
   user: User
   deleteAccount: () => void
+  deleteBusiness: (businessId: number) => Promise<void>
   businesses: Business[]
   selectedBusinessId: number | null
   setSelectedBusinessId: (businessId: number) => void
@@ -14,6 +15,7 @@ type DashboardProps = {
 function Dashboard({
   user,
   deleteAccount,
+  deleteBusiness,
   businesses,
   selectedBusinessId,
   setSelectedBusinessId,
@@ -21,8 +23,50 @@ function Dashboard({
 }: DashboardProps) {
   const [businessName, setBusinessName] = useState('')
   const [message, setMessage] = useState('')
+  const [businessMembers, setBusinessMembers] = useState<BusinessMember[]>([])
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
 
   const selectedBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
+  const canDeleteBusiness = Boolean(selectedBusiness && selectedBusiness.ownerId === user.id)
+
+  useEffect(() => {
+    if (!selectedBusinessId) {
+      setBusinessMembers([])
+      return
+    }
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
+    if (!token) {
+      setBusinessMembers([])
+      return
+    }
+
+    const loadBusinessMembers = async () => {
+      try {
+        const response = await fetch(`http://localhost:8080/api/businesses/${selectedBusinessId}/members`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch business members')
+        }
+
+        const data: BusinessMember[] = await response.json()
+        setBusinessMembers(data)
+      } catch (error) {
+        console.error(error)
+        setBusinessMembers([])
+      }
+    }
+
+    void loadBusinessMembers()
+  }, [selectedBusinessId])
+
+  const employeeCount = businessMembers.filter((member) => member.role === 'EMPLOYEE').length
+  const managerCount = businessMembers.filter((member) => member.role === 'MANAGER').length
 
   const handleCreateBusiness = async () => {
     if (!businessName.trim()) {
@@ -32,7 +76,32 @@ function Dashboard({
 
     await createBusiness(businessName)
     setBusinessName('')
+    setIsCreateFormOpen(false)
     setMessage('Business created successfully.')
+  }
+
+  const handleDeleteBusiness = async () => {
+    if (!selectedBusiness) {
+      return
+    }
+
+    if (!canDeleteBusiness) {
+      setMessage('Only the owner can delete this business.')
+      return
+    }
+
+    const confirmed = window.confirm(`Are you sure you want to delete "${selectedBusiness.name}"?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    try {
+      await deleteBusiness(selectedBusiness.id)
+      setMessage('Business deleted successfully.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to delete business.')
+    }
   }
 
   return (
@@ -48,14 +117,31 @@ function Dashboard({
         <h2>Current business</h2>
 
         {businesses.length === 0 ? (
-          <div className="empty-state small-empty-state">
-            <h2>No businesses yet</h2>
-            <p>Create your first business to get started.</p>
-          </div>
-        ) : (
           <>
+            <div className="empty-state small-empty-state">
+              <h2>No businesses yet</h2>
+              <p>Create your first business to get started.</p>
+            </div>
+
+            <div className="business-selector-row empty-business-actions">
+              <button
+                type="button"
+                className="primary-button business-action-button"
+                onClick={() => {
+                  setIsCreateFormOpen((current) => !current)
+                  if (!isCreateFormOpen) {
+                    setMessage('')
+                  }
+                }}
+              >
+                {isCreateFormOpen ? 'Cancel' : '+ Create Business'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="business-selector-row">
             <select
-              className="role-select"
+              className="role-select business-selector"
               value={selectedBusinessId ?? ''}
               onChange={(event) => setSelectedBusinessId(Number(event.target.value))}
             >
@@ -66,33 +152,48 @@ function Dashboard({
               ))}
             </select>
 
-            <div className="business-list">
-              {businesses.map((business) => (
+            <div className="business-action-row">
+              {selectedBusiness && (
                 <button
                   type="button"
-                  key={business.id}
-                  className={`business-chip${selectedBusiness?.id === business.id ? ' active' : ''}`}
-                  onClick={() => setSelectedBusinessId(business.id)}
+                  className="delete-button business-action-button"
+                  onClick={handleDeleteBusiness}
+                  disabled={!canDeleteBusiness}
                 >
-                  {business.name}
+                  Delete Business
                 </button>
-              ))}
+              )}
+
+              <button
+                type="button"
+                className="primary-button business-action-button"
+                onClick={() => {
+                  setIsCreateFormOpen((current) => !current)
+                  if (!isCreateFormOpen) {
+                    setMessage('')
+                  }
+                }}
+              >
+                {isCreateFormOpen ? 'Cancel' : '+ Create Business'}
+              </button>
             </div>
-          </>
+          </div>
         )}
 
-        <div className="business-form">
-          <input
-            type="text"
-            placeholder="Business name"
-            value={businessName}
-            onChange={(event) => setBusinessName(event.target.value)}
-          />
+        {isCreateFormOpen && (
+          <div className="business-form inline-create-form">
+            <input
+              type="text"
+              placeholder="Business name"
+              value={businessName}
+              onChange={(event) => setBusinessName(event.target.value)}
+            />
 
-          <button className="primary-button" onClick={handleCreateBusiness}>
-            + Create Business
-          </button>
-        </div>
+            <button className="primary-button" onClick={handleCreateBusiness}>
+              Create Business
+            </button>
+          </div>
+        )}
 
         {message && <p className="message">{message}</p>}
       </div>
@@ -105,12 +206,12 @@ function Dashboard({
 
         <div className="stat-card">
           <span>Employees</span>
-          <strong>{selectedBusiness ? '?' : '0'}</strong>
+          <strong>{selectedBusiness ? employeeCount : '0'}</strong>
         </div>
 
         <div className="stat-card">
           <span>Managers</span>
-          <strong>0</strong>
+          <strong>{selectedBusiness ? managerCount : '0'}</strong>
         </div>
 
         <div className="stat-card">
