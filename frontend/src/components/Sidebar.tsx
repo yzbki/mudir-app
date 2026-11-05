@@ -65,6 +65,11 @@ function Sidebar({
           <span>Employees</span>
         </button>
 
+        <button aria-label="Schedule" title="Schedule" disabled={!user} onClick={() => setPage('schedule')}>
+          <img src="/interface-icons/schedule.svg" alt="" />
+          <span>Schedule</span>
+        </button>
+
         <button aria-label="Inventory" title="Inventory" disabled={!user} onClick={() => setPage('inventory')}>
           <img src="/interface-icons/inventory.svg" alt="" />
           <span>Inventory</span>

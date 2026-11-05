@@ -7,6 +7,7 @@ import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
 import Users from './pages/Users'
 import Employees from './pages/Employees'
+import Schedule from './pages/Schedule'
 import Inventory from './pages/Inventory'
 import Tasks from './pages/Tasks'
 import Customers from './pages/Customers'
@@ -578,6 +579,12 @@ function App() {
                 businesses={businesses}
                 selectedBusinessId={selectedBusinessId}
                 refreshBusinesses={loadBusinesses}
+              />
+            )}
+            {page === 'schedule' && (
+              <Schedule
+                businesses={businesses}
+                selectedBusinessId={selectedBusinessId}
               />
             )}
             {page === 'customers' && <Customers />}
