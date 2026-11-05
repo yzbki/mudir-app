@@ -232,21 +232,6 @@ function Dashboard({
           </div>
         )}
 
-        {isCreateFormOpen && (
-          <div className="business-form inline-create-form">
-            <input
-              type="text"
-              placeholder="Business name"
-              value={businessName}
-              onChange={(event) => setBusinessName(event.target.value)}
-            />
-
-            <button className="primary-button" onClick={() => void handleCreateBusiness()}>
-              Create Business
-            </button>
-          </div>
-        )}
-
         {selectedBusiness && (
           <>
             <div className="business-details-panel">
@@ -322,6 +307,21 @@ function Dashboard({
                 )
               })}
             </div>
+
+            {isCreateFormOpen && (
+              <div className="business-form inline-create-form">
+                <input
+                  type="text"
+                  placeholder="Business name"
+                  value={businessName}
+                  onChange={(event) => setBusinessName(event.target.value)}
+                />
+
+                <button type="button" className="primary-button" onClick={() => void handleCreateBusiness()}>
+                  Create Business
+                </button>
+              </div>
+            )}
 
             <div className="business-action-row">
               <button

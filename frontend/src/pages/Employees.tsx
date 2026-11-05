@@ -28,6 +28,23 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   const currentBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
   const ownerId = currentBusiness?.ownerId ?? null
 
+  const today = new Date()
+
+  const currentWeekDates = (() => {
+    const startOfWeek = new Date(today)
+    const dayIndex = startOfWeek.getDay()
+    const daysFromMonday = dayIndex === 0 ? -6 : 1 - dayIndex
+
+    startOfWeek.setHours(0, 0, 0, 0)
+    startOfWeek.setDate(today.getDate() + daysFromMonday)
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(startOfWeek)
+      date.setDate(startOfWeek.getDate() + index)
+      return date
+    })
+  })()
+
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token') || ''
 
   const loadUsers = async () => {
@@ -401,6 +418,26 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
           }}
           className="schedule-calendar"
         />
+
+        <div className="weekly-schedule-wrapper">
+          <div className="weekly-schedule-header">This week</div>
+
+          <div className="weekly-schedule-grid">
+            {currentWeekDates.map((date) => {
+              const isToday = date.toDateString() === today.toDateString()
+
+              return (
+                <div key={date.toDateString()} className={`weekly-day-box ${isToday ? 'is-today' : ''}`}>
+                  <div className="weekly-day-header">
+                    <span className="weekly-day-name">{new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date)}</span>
+                    <span className="weekly-day-date">{new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date)}</span>
+                  </div>
+                  <div className="weekly-day-content">No shifts</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
 
       {message && <p className="message">{message}</p>}

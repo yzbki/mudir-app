@@ -951,6 +951,79 @@
   background: #0f1319 !important;
 }
 
+.weekly-schedule-wrapper {
+  margin-top: 24px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.weekly-schedule-header {
+  margin: 0 0 12px;
+  color: #a5acb7;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.weekly-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(120px, 1fr));
+  gap: 12px;
+  width: 100%;
+  min-width: 760px;
+}
+
+.weekly-day-box {
+  display: flex;
+  flex-direction: column;
+  min-height: 150px;
+  border: 1px solid #252a33;
+  border-radius: 12px;
+  background: #111419;
+  overflow: hidden;
+}
+
+.weekly-day-box.is-today {
+  border-color: #315A9E;
+  box-shadow: inset 0 0 0 1px rgba(49, 90, 158, 0.65);
+  background: linear-gradient(180deg, rgba(49, 90, 158, 0.12) 0%, rgba(17, 20, 25, 1) 100%);
+}
+
+.weekly-day-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(37, 42, 51, 0.85);
+  background: rgba(12, 15, 19, 0.7);
+}
+
+.weekly-day-name {
+  color: #e9edf3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.weekly-day-date {
+  color: #a5acb7;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.weekly-day-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 12px;
+  color: #68717d;
+  font-size: 13px;
+  text-align: center;
+}
+
 .team-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
