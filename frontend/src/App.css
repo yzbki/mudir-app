@@ -929,6 +929,8 @@
 
 .employee-form {
   max-width: 900px;
+  width: 100%;
+  overflow-x: auto;
 }
 
 .employee-field-grid {
@@ -936,16 +938,20 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   width: 100%;
+  min-width: 0;
 }
 
 .employee-field-grid-two-row {
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
 }
 
 .employee-field-grid input,
 .employee-field-grid select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-bottom: 0;
+  box-sizing: border-box;
 }
 
 .employee-dropdown-row {
@@ -965,6 +971,7 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .member-meta {
@@ -989,6 +996,7 @@
   flex: 1 1 180px;
   margin: 0 !important;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .invite-email-row {
@@ -1020,9 +1028,47 @@
   margin-top: 28px;
 }
 
+.schedule-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  width: 100%;
+  min-height: 420px;
+}
+
+.schedule-manager-panel {
+  flex: 1;
+  min-width: 0;
+  max-width: 360px;
+  padding: 16px;
+  border: 1px solid #252a33;
+  border-radius: 12px;
+  background: #111419;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 420px;
+}
+
+.schedule-manager-panel h3 {
+  margin: 0 0 12px;
+  color: #e9edf3;
+  font-size: 18px;
+}
+
+.schedule-manager-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .schedule-calendar {
+  flex: 1;
   width: 100%;
   max-width: 760px;
+  min-height: 420px;
+  height: 100%;
   border: 1px solid #252a33;
   border-radius: 12px;
   background: #0b0d10 !important;
@@ -1035,6 +1081,9 @@
   background: #0b0d10 !important;
   border-color: #252a33;
   color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .schedule-calendar .react-calendar__navigation,
@@ -1045,6 +1094,26 @@
 .schedule-calendar .react-calendar__month-view__weekdays__weekday,
 .schedule-calendar .react-calendar__tile {
   background: transparent;
+}
+
+.schedule-calendar .react-calendar__viewContainer,
+.schedule-calendar .react-calendar__month-view {
+  height: 100%;
+}
+
+.schedule-calendar .react-calendar__month-view__days {
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  min-height: 100%;
+  height: 100%;
+}
+
+.schedule-calendar .react-calendar__tile {
+  min-height: 72px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .schedule-calendar .react-calendar__navigation button,
@@ -1181,6 +1250,67 @@
   color: #68717d;
   font-size: 13px;
   text-align: center;
+}
+
+.shift-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shift-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shift-pill-button {
+  width: 100%;
+  min-width: 0;
+  border-radius: 999px !important;
+  background: #1c2330 !important;
+  border: 1px solid #2f3948 !important;
+  color: #edf3ff !important;
+  padding: 8px 10px !important;
+  margin: 0 !important;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.shift-pill.is-selected .shift-pill-button {
+  border-color: #315A9E !important;
+  box-shadow: 0 0 0 1px rgba(49, 90, 158, 0.5);
+}
+
+.shift-pill-button:hover {
+  background: #222d3a !important;
+}
+
+.shift-delete-button {
+  width: 100%;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border-radius: 8px !important;
+  background: #b42318 !important;
+  color: #ffffff !important;
+  font-size: 12px;
+}
+
+.shift-delete-button:hover {
+  background: #d92d20 !important;
 }
 
 .team-list {
@@ -1444,6 +1574,15 @@
 
   .business-detail-actions {
     grid-column: 1;
+  }
+
+  .schedule-layout {
+    flex-direction: column;
+  }
+
+  .schedule-manager-panel {
+    max-width: 100%;
+    width: 100%;
   }
 
   .schedule-calendar {

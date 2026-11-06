@@ -6,6 +6,8 @@ import com.youzbaki.mudir.business.dto.BusinessMemberRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberResponse;
 import com.youzbaki.mudir.business.dto.BusinessResponse;
 import com.youzbaki.mudir.business.dto.BusinessSettingsRequest;
+import com.youzbaki.mudir.business.dto.BusinessShiftRequest;
+import com.youzbaki.mudir.business.dto.BusinessShiftResponse;
 import com.youzbaki.mudir.user.User;
 import com.youzbaki.mudir.user.UserService;
 import org.springframework.http.ResponseEntity;
@@ -121,6 +123,46 @@ public class BusinessController {
             User actor = userService.getUserByEmail(authentication.getName());
             businessService.removeEmployee(actor, businessId, userId);
             return ResponseEntity.ok(Map.of("message", "Employee removed"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/{businessId}/shifts")
+    public ResponseEntity<?> getShifts(
+            Authentication authentication,
+            @PathVariable Long businessId) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            return ResponseEntity.ok(businessService.getShiftsForBusiness(actor, businessId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/{businessId}/shifts")
+    public ResponseEntity<?> createShift(
+            Authentication authentication,
+            @PathVariable Long businessId,
+            @RequestBody BusinessShiftRequest request) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            BusinessShiftResponse response = businessService.createShift(actor, businessId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{businessId}/shifts/{shiftId}")
+    public ResponseEntity<?> deleteShift(
+            Authentication authentication,
+            @PathVariable Long businessId,
+            @PathVariable Long shiftId) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            businessService.deleteShift(actor, businessId, shiftId);
+            return ResponseEntity.ok(Map.of("message", "Shift deleted"));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

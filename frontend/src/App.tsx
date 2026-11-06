@@ -644,6 +644,7 @@ function App() {
             )}
             {page === 'schedule' && (
               <Schedule
+                user={user}
                 businesses={businesses}
                 selectedBusinessId={selectedBusinessId}
               />

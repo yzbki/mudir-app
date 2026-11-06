@@ -5,13 +5,15 @@ import com.youzbaki.mudir.business.dto.BusinessDetailsRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberResponse;
 import com.youzbaki.mudir.business.dto.BusinessResponse;
+import com.youzbaki.mudir.business.dto.BusinessSettingsRequest;
+import com.youzbaki.mudir.business.dto.BusinessShiftRequest;
+import com.youzbaki.mudir.business.dto.BusinessShiftResponse;
 import com.youzbaki.mudir.user.User;
 import com.youzbaki.mudir.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.youzbaki.mudir.business.dto.BusinessSettingsRequest;
-
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -24,14 +26,17 @@ public class BusinessService {
 
     private final BusinessRepository businessRepository;
     private final BusinessMemberRepository businessMemberRepository;
+    private final BusinessShiftRepository businessShiftRepository;
     private final UserRepository userRepository;
 
     public BusinessService(
             BusinessRepository businessRepository,
             BusinessMemberRepository businessMemberRepository,
+            BusinessShiftRepository businessShiftRepository,
             UserRepository userRepository) {
         this.businessRepository = businessRepository;
         this.businessMemberRepository = businessMemberRepository;
+        this.businessShiftRepository = businessShiftRepository;
         this.userRepository = userRepository;
     }
 
@@ -226,6 +231,82 @@ public class BusinessService {
         businessMemberRepository.delete(member);
     }
 
+    @Transactional
+    public BusinessShiftResponse createShift(User actor, Long businessId, BusinessShiftRequest request) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner or a manager can schedule shifts");
+        }
+
+        if (request.userId() == null) {
+            throw new IllegalArgumentException("Employee is required");
+        }
+
+        if (request.date() == null) {
+            throw new IllegalArgumentException("Shift date is required");
+        }
+
+        String startTime = request.startTime() == null ? "" : request.startTime().trim();
+        String endTime = request.endTime() == null ? "" : request.endTime().trim();
+
+        if (startTime.isEmpty() || endTime.isEmpty()) {
+            throw new IllegalArgumentException("Shift start and end times are required");
+        }
+
+        User targetUser = userRepository.findById(request.userId())
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
+
+        BusinessMember membership = businessMemberRepository.findByBusinessAndUser(business, targetUser)
+                .orElseThrow(() -> new IllegalArgumentException("Employee is not assigned to this business"));
+
+        if (businessShiftRepository.existsByBusinessAndUserAndDate(business, targetUser, request.date())) {
+            throw new IllegalArgumentException("A shift for this employee on this date already exists");
+        }
+
+        BusinessShift shift = new BusinessShift(business, targetUser, request.date(), startTime, endTime);
+        BusinessShift saved = businessShiftRepository.save(shift);
+
+        return toShiftResponse(saved, membership);
+    }
+
+    @Transactional
+    public void deleteShift(User actor, Long businessId, Long shiftId) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner or a manager can delete shifts");
+        }
+
+        BusinessShift shift = businessShiftRepository.findById(shiftId)
+                .orElseThrow(() -> new IllegalArgumentException("Shift not found"));
+
+        if (!shift.getBusiness().getId().equals(business.getId())) {
+            throw new IllegalArgumentException("Shift does not belong to this business");
+        }
+
+        businessShiftRepository.delete(shift);
+    }
+
+    public List<BusinessShiftResponse> getShiftsForBusiness(User actor, Long businessId) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isBusinessMember(actor, business)) {
+            throw new IllegalArgumentException("You do not have access to this business");
+        }
+
+        return businessShiftRepository.findByBusiness(business).stream()
+                .map(shift -> {
+                    BusinessMember membership = businessMemberRepository.findByBusinessAndUser(business, shift.getUser())
+                            .orElse(null);
+                    return toShiftResponse(shift, membership);
+                })
+                .toList();
+    }
+
     public boolean isOwnerOrManager(User user, Business business) {
         if (business.getOwner().getId().equals(user.getId())) {
             return true;
@@ -267,6 +348,20 @@ public class BusinessService {
                 member.getUser().getName(),
                 member.getRole(),
                 member.getTitle()
+        );
+    }
+
+    private BusinessShiftResponse toShiftResponse(BusinessShift shift, BusinessMember membership) {
+        return new BusinessShiftResponse(
+                shift.getId(),
+                shift.getBusiness().getId(),
+                shift.getUser().getId(),
+                shift.getUser().getName(),
+                membership != null ? membership.getTitle() : null,
+                membership != null ? membership.getRole().name() : null,
+                shift.getDate(),
+                shift.getStartTime(),
+                shift.getEndTime()
         );
     }
 
