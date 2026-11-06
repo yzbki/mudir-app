@@ -1588,6 +1588,25 @@
   .schedule-calendar {
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     overflow: hidden;
+  }
+
+  .schedule-calendar .react-calendar__month-view__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .schedule-calendar .react-calendar__month-view__days {
+    display: grid !important;
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(5, minmax(54px, 1fr)) !important;
+  }
+
+  .schedule-calendar .react-calendar__tile {
+    min-width: 0;
+    min-height: 54px;
+    padding: 6px 4px;
+    font-size: 12px;
   }
 }
