@@ -7,5 +7,6 @@ public record BusinessMemberResponse(
         Long businessId,
         Long userId,
         String userName,
-        BusinessRole role
+        BusinessRole role,
+        String title
 ) {}

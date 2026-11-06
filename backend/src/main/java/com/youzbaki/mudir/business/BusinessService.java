@@ -78,9 +78,6 @@ public class BusinessService {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
-        User targetUser = userRepository.findById(request.userId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
         if (!isOwnerOrManager(actor, business)) {
             throw new IllegalArgumentException("Only the business owner or a manager can assign employees");
         }
@@ -91,6 +88,24 @@ public class BusinessService {
 
         if (request.role() == BusinessRole.OWNER) {
             throw new IllegalArgumentException("Cannot assign OWNER role to another user");
+        }
+
+        String normalizedEmail = request.email() == null ? null : request.email().trim().toLowerCase();
+
+        User targetUser;
+        if (request.userId() != null) {
+            targetUser = userRepository.findById(request.userId())
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        } else if (normalizedEmail != null && !normalizedEmail.isBlank()) {
+            targetUser = userRepository.findByEmail(normalizedEmail)
+                    .orElseGet(() -> {
+                        String displayName = request.name() == null || request.name().isBlank()
+                                ? buildDisplayNameFromEmail(normalizedEmail)
+                                : request.name().trim();
+                        return userRepository.save(new User(normalizedEmail, null, displayName));
+                    });
+        } else {
+            throw new IllegalArgumentException("User ID or email is required");
         }
 
         if (targetUser.getId().equals(business.getOwner().getId())) {
@@ -105,6 +120,10 @@ public class BusinessService {
                 .orElseGet(() -> new BusinessMember(business, targetUser, request.role()));
 
         existing.setRole(request.role());
+        if (request.title() != null) {
+            existing.setTitle(request.title());
+        }
+
         BusinessMember saved = businessMemberRepository.save(existing);
 
         return toMemberResponse(saved);
@@ -246,7 +265,13 @@ public class BusinessService {
                 member.getBusiness().getId(),
                 member.getUser().getId(),
                 member.getUser().getName(),
-                member.getRole()
+                member.getRole(),
+                member.getTitle()
         );
+    }
+
+    private String buildDisplayNameFromEmail(String email) {
+        String localPart = email.substring(0, email.indexOf('@'));
+        return localPart.substring(0, 1).toUpperCase() + localPart.substring(1);
     }
 }

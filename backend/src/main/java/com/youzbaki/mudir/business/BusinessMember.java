@@ -28,6 +28,9 @@ public class BusinessMember {
     @Column(nullable = false)
     private BusinessRole role;
 
+    @Column(nullable = true)
+    private String title;
+
     public BusinessMember() {
     }
 
@@ -35,6 +38,13 @@ public class BusinessMember {
         this.business = business;
         this.user = user;
         this.role = role;
+    }
+
+    public BusinessMember(Business business, User user, BusinessRole role, String title) {
+        this.business = business;
+        this.user = user;
+        this.role = role;
+        this.title = title;
     }
 
     public Long getId() {
@@ -63,5 +73,13 @@ public class BusinessMember {
 
     public void setRole(BusinessRole role) {
         this.role = role;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title == null || title.trim().isEmpty() ? null : title.trim();
     }
 }

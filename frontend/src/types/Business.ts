@@ -17,4 +17,5 @@ export type BusinessMember = {
   userId: number
   userName: string
   role: BusinessRole
+  title?: string | null
 }

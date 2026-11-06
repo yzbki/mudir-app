@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import type { Business, BusinessMember, BusinessRole } from '../types/Business'
 import type { User } from '../types/User'
 
@@ -12,12 +12,15 @@ type EmployeesProps = {
 }
 
 const roleOptions: BusinessRole[] = ['MANAGER', 'EMPLOYEE']
+const permissionOptions: Array<'EMPLOYEE' | 'MANAGER'> = ['EMPLOYEE', 'MANAGER']
 
 function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: EmployeesProps) {
-  const [allUsers, setAllUsers] = useState<User[]>([])
   const [members, setMembers] = useState<BusinessMember[]>([])
-  const [selectedUserId, setSelectedUserId] = useState('')
-  const [selectedRole, setSelectedRole] = useState<BusinessRole>('EMPLOYEE')
+  const [employeeName, setEmployeeName] = useState('')
+  const [employeeEmail, setEmployeeEmail] = useState('')
+  const [employeePassword, setEmployeePassword] = useState('')
+  const [employeeRole, setEmployeeRole] = useState('')
+  const [employeePermission, setEmployeePermission] = useState<'EMPLOYEE' | 'MANAGER'>('EMPLOYEE')
   const [inviteEmail, setInviteEmail] = useState('')
   const [isInviteOpen, setIsInviteOpen] = useState(false)
   const [message, setMessage] = useState('')
@@ -33,31 +36,6 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   const canManageEmployees = currentUserRole === 'OWNER' || currentUserRole === 'MANAGER'
 
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token') || ''
-
-  const loadUsers = async () => {
-    const token = getToken()
-
-    if (!token) return
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch users')
-
-      const data = await response.json()
-      setAllUsers(data)
-
-      if (!selectedUserId && data.length > 0) {
-        setSelectedUserId(String(data[0].id))
-      }
-    } catch (error) {
-      console.error(error)
-    }
-  }
 
   const loadMembers = async () => {
     if (!selectedBusinessId) {
@@ -88,32 +66,39 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   }
 
   useEffect(() => {
-    if (!user) return
-    loadUsers()
-  }, [user])
-
-  useEffect(() => {
     loadMembers()
   }, [selectedBusinessId])
 
-  useEffect(() => {
-    if (!allUsers.length) return
-
-    if (!selectedUserId || !allUsers.some((person) => String(person.id) === selectedUserId)) {
-      setSelectedUserId(String(allUsers[0].id))
-    }
-  }, [allUsers, selectedUserId])
-
   const handleAddEmployee = async () => {
-    const token = getToken()
-
     if (!canManageEmployees) {
       setMessage('Only the owner or a manager can add employees.')
       return
     }
 
-    if (!token || !selectedBusinessId || !selectedUserId) {
-      setMessage('Select a business and employee first.')
+    if (!selectedBusinessId) {
+      setMessage('Select a business before adding an employee.')
+      return
+    }
+
+    const trimmedName = employeeName.trim()
+    const normalizedEmail = employeeEmail.trim()
+    const trimmedPassword = employeePassword.trim()
+    const trimmedRole = employeeRole.trim()
+
+    if (!trimmedName || !normalizedEmail || !trimmedPassword || !trimmedRole) {
+      setMessage('Enter the employee name, email, password, and role before adding them.')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setMessage('Please enter a valid email address.')
+      return
+    }
+
+    const token = getToken()
+
+    if (!token) {
+      setMessage('You must be signed in to add employees.')
       return
     }
 
@@ -125,22 +110,32 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId: Number(selectedUserId),
-          role: selectedRole,
+          email: normalizedEmail,
+          name: trimmedName,
+          password: trimmedPassword,
+          role: employeePermission,
+          title: trimmedRole,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(typeof data === 'string' ? data : 'Failed to assign employee role')
+        throw new Error(typeof data === 'string' ? data : 'Failed to add employee')
       }
 
-      setMessage('Employee added successfully.')
+      setMessage(
+        `Employee ${trimmedName} (${normalizedEmail}) was added to ${currentBusiness?.name ?? 'this business'} as ${trimmedRole} (${employeePermission === 'MANAGER' ? 'Manager' : 'Employee'}).`
+      )
+      setEmployeeName('')
+      setEmployeeEmail('')
+      setEmployeePassword('')
+      setEmployeeRole('')
+      setEmployeePermission('EMPLOYEE')
       await loadMembers()
       await refreshBusinesses()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Failed to assign employee role')
+      setMessage(error instanceof Error ? error.message : 'Failed to add employee')
     }
   }
 
@@ -310,27 +305,43 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
           <h2>Add employee</h2>
 
           <div className="business-form employee-form">
-            <div className="employee-dropdown-row">
-              <select
-                className="role-select"
-                value={selectedUserId}
-                onChange={(event) => setSelectedUserId(event.target.value)}
-              >
-                {allUsers.map((person) => (
-                  <option key={person.id} value={String(person.id)}>
-                    {person.name} ({person.email})
-                  </option>
-                ))}
-              </select>
+            <div className="employee-field-grid employee-field-grid-two-row">
+              <input
+                type="text"
+                placeholder="Employee Name"
+                value={employeeName}
+                onChange={(event) => setEmployeeName(event.target.value)}
+              />
+
+              <input
+                type="text"
+                placeholder="Role"
+                value={employeeRole}
+                onChange={(event) => setEmployeeRole(event.target.value)}
+              />
+
+              <input
+                type="email"
+                placeholder="Email"
+                value={employeeEmail}
+                onChange={(event) => setEmployeeEmail(event.target.value)}
+              />
+
+              <input
+                type="password"
+                placeholder="Password"
+                value={employeePassword}
+                onChange={(event) => setEmployeePassword(event.target.value)}
+              />
 
               <select
-                className="role-select small-select"
-                value={selectedRole}
-                onChange={(event) => setSelectedRole(event.target.value as BusinessRole)}
+                className="role-select"
+                value={employeePermission}
+                onChange={(event) => setEmployeePermission(event.target.value as 'EMPLOYEE' | 'MANAGER')}
               >
-                {roleOptions.map((role) => (
-                  <option key={role} value={role}>
-                    {role}
+                {permissionOptions.map((permission) => (
+                  <option key={permission} value={permission}>
+                    {permission === 'MANAGER' ? 'Manager' : 'Employee'}
                   </option>
                 ))}
               </select>
@@ -387,33 +398,58 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
                   <h2>{member.userName}</h2>
 
                   {isOwnerMember ? (
-                    <p>Owner</p>
-                  ) : canManageEmployees ? (
-                    <div className="member-action-row">
-                      <select
-                        className="role-select small-select"
-                        value={member.role}
-                        onChange={(event) => handleRoleChange(member, event.target.value as BusinessRole)}
-                        disabled={isCurrentUser}
-                      >
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
-
-                      <button
-                        type="button"
-                        className="danger-button"
-                        onClick={() => handleRemoveEmployee(member)}
-                        disabled={isCurrentUser}
-                      >
-                        Remove
-                      </button>
+                    <div className="member-meta">
+                      <p>
+                        <strong>Role:</strong> Owner
+                      </p>
+                      <p>
+                        <strong>Permissions:</strong> Owner
+                      </p>
                     </div>
+                  ) : canManageEmployees ? (
+                    <>
+                      <div className="member-meta">
+                        <p>
+                          <strong>Role:</strong> {member.title?.trim() ? member.title : 'Not specified'}
+                        </p>
+                        <p>
+                          <strong>Permissions:</strong> {member.role === 'MANAGER' ? 'Manager' : 'Employee'}
+                        </p>
+                      </div>
+
+                      <div className="member-action-row">
+                        <select
+                          className="role-select small-select"
+                          value={member.role}
+                          onChange={(event) => handleRoleChange(member, event.target.value as BusinessRole)}
+                          disabled={isCurrentUser}
+                        >
+                          {roleOptions.map((role) => (
+                            <option key={role} value={role}>
+                              {role}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          className="danger-button"
+                          onClick={() => handleRemoveEmployee(member)}
+                          disabled={isCurrentUser}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </>
                   ) : (
-                    <p>{member.role}</p>
+                    <div className="member-meta">
+                      <p>
+                        <strong>Role:</strong> {member.title?.trim() ? member.title : 'Not specified'}
+                      </p>
+                      <p>
+                        <strong>Permissions:</strong> {member.role === 'MANAGER' ? 'Manager' : 'Employee'}
+                      </p>
+                    </div>
                   )}
                 </div>
               )
