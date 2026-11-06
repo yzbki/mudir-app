@@ -110,6 +110,24 @@ public class AuthService {
         );
     }
 
+    public UserResponse updateAccountName(String email, String newName) {
+        User user = userRepository.findByEmail(normalizeEmail(email))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        if (newName == null || newName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Account name is required");
+        }
+
+        user.setName(newName.trim());
+        userRepository.save(user);
+
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail()
+        );
+    }
+
     public void deleteAccount(String email) {
         User user = userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));

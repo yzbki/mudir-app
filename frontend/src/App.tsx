@@ -1,11 +1,11 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import confetti from 'canvas-confetti'
 import type { Business } from './types/Business'
 import type { User } from './types/User'
 import Sidebar from './components/Sidebar'
 import Dashboard from './pages/Dashboard'
-import Users from './pages/Users'
+import Profile from './pages/Profile'
 import Employees from './pages/Employees'
 import Schedule from './pages/Schedule'
 import Inventory from './pages/Inventory'
@@ -46,7 +46,6 @@ declare global {
 
 function App() {
   const [user, setUser] = useState<User | null>(null)
-  const [users, setUsers] = useState<User[]>([])
   const [businesses, setBusinesses] = useState<Business[]>([])
   const [selectedBusinessId, setSelectedBusinessId] = useState<number | null>(null)
   const [name, setName] = useState('')
@@ -341,27 +340,38 @@ function App() {
     }
   }
 
-  const loadUsers = async () => {
+  const updateUserProfile = async (name: string) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
     if (!token) return
 
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+    const response = await fetch(`${API_BASE_URL}/api/auth/account`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name }),
+    })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch users')
+    const data = await parseResponseData(response)
+
+    if (!response.ok) {
+      throw new Error(typeof data === 'string' ? data : 'Failed to update profile')
+    }
+
+    setUser((currentUser) => {
+      if (!currentUser) {
+        return currentUser
       }
 
-      const data = await response.json()
-      setUsers(data)
-    } catch (error) {
-      console.error(error)
-    }
+      const nextName = typeof data === 'object' && data && 'name' in data ? String(data.name) : currentUser.name
+
+      return {
+        ...currentUser,
+        name: nextName,
+      }
+    })
   }
 
   const parseResponseData = async (response: Response) => {
@@ -469,7 +479,6 @@ function App() {
     <div className="app">
       <Sidebar
         setPage={setPage}
-        loadUsers={loadUsers}
         user={user}
         logout={logout}
         setMode={setMode}
@@ -572,7 +581,7 @@ function App() {
               />
             )}
 
-            {page === 'users' && <Users users={users} />}
+            {page === 'profile' && <Profile user={user} businesses={businesses} onUpdateUser={updateUserProfile} />}
             {page === 'employees' && (
               <Employees
                 user={user}

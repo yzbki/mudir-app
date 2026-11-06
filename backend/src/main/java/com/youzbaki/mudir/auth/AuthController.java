@@ -57,6 +57,20 @@ public class AuthController {
         }
     }
 
+    @PutMapping("/account")
+    public ResponseEntity<?> updateAccount(
+            org.springframework.security.core.Authentication authentication,
+            @RequestBody com.youzbaki.mudir.auth.dto.UpdateAccountRequest request) {
+        try {
+            String email = authentication.getName();
+            return ResponseEntity.ok(authService.updateAccountName(email, request.name()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/account")
     public ResponseEntity<?> deleteAccount(
             org.springframework.security.core.Authentication authentication) {

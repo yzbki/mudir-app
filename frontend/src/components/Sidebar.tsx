@@ -3,7 +3,6 @@ import type { User } from '../types/User'
 
 type SidebarProps = {
   setPage: (page: string) => void
-  loadUsers: () => void
   user: User | null
   logout: () => void
   setMode: (mode: 'login' | 'signup') => void
@@ -12,7 +11,6 @@ type SidebarProps = {
 
 function Sidebar({
   setPage,
-  loadUsers,
   user,
   logout,
   setMode,
@@ -86,16 +84,13 @@ function Sidebar({
         </button>
 
         <button
-          aria-label="Users"
-          title="Users"
+          aria-label="Profile"
+          title="Profile"
           disabled={!user}
-          onClick={() => {
-            setPage('users')
-            loadUsers()
-          }}
+          onClick={() => setPage('profile')}
         >
           <img src="/interface-icons/users.svg" alt="" />
-          <span>Users</span>
+          <span>Profile</span>
         </button>
       </nav>
 

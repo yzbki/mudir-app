@@ -1278,6 +1278,15 @@
     flex-basis: 100%;
   }
 
+  .business-detail-row {
+    grid-template-columns: 1fr;
+    gap: 8px 0;
+  }
+
+  .business-detail-actions {
+    grid-column: 1;
+  }
+
   .schedule-calendar {
     width: 100%;
     max-width: 100%;

@@ -91,7 +91,9 @@ function Dashboard({
     setSavingDetail(null)
   }, [selectedBusinessId, businesses])
 
-  const employeeCount = businessMembers.filter((member) => member.role === 'EMPLOYEE').length
+  const employeeCount = businessMembers.filter(
+    (member) => member.role === 'EMPLOYEE' || member.role === 'MANAGER',
+  ).length
   const managerCount = businessMembers.filter((member) => member.role === 'MANAGER').length
 
   const handleCreateBusiness = async () => {
