@@ -56,6 +56,8 @@ function App() {
   const [message, setMessage] = useState('Loading...')
   const [showPassword, setShowPassword] = useState(false)
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
+  const [isAuthLoading, setIsAuthLoading] = useState(true)
+  const [isBusinessesReady, setIsBusinessesReady] = useState(false)
   const googleButtonRef = useRef<HTMLDivElement | null>(null)
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
@@ -68,16 +70,22 @@ function App() {
     }
 
     const selectedBusiness = businesses.find((business) => business.id === targetBusinessId) || null
-    const enabledPages = selectedBusiness?.enabledPages ?? ['dashboard', 'employees', 'profile', 'schedule', 'inventory', 'tasks', 'customers']
+    if (!selectedBusiness) {
+      return false
+    }
+
+    const enabledPages = selectedBusiness.enabledPages ?? ['dashboard', 'employees', 'profile']
     return enabledPages.includes(targetPage)
   }
 
   const loadBusinesses = async (explicitToken?: string) => {
+    setIsBusinessesReady(false)
     const token = explicitToken || localStorage.getItem('token') || sessionStorage.getItem('token')
 
     if (!token) {
       setBusinesses([])
       setSelectedBusinessId(null)
+      setIsBusinessesReady(true)
       return
     }
 
@@ -107,14 +115,19 @@ function App() {
       }
     } catch (error) {
       console.error(error)
+    } finally {
+      setIsBusinessesReady(true)
     }
   }
 
   const ensureUserSession = async () => {
+    setIsAuthLoading(true)
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
 
     if (!token) {
+      setUser(null)
       setMessage('')
+      setIsAuthLoading(false)
       return
     }
 
@@ -138,6 +151,8 @@ function App() {
       sessionStorage.removeItem('token')
       setUser(null)
       setMessage('')
+    } finally {
+      setIsAuthLoading(false)
     }
   }
 
@@ -149,9 +164,11 @@ function App() {
     if (!user) {
       setBusinesses([])
       setSelectedBusinessId(null)
+      setIsBusinessesReady(false)
       return
     }
 
+    setIsBusinessesReady(false)
     loadBusinesses()
   }, [user])
 
@@ -491,6 +508,20 @@ function App() {
       console.error(error)
       throw error
     }
+  }
+
+  const isWorkspaceLoading = Boolean(user) && !isBusinessesReady
+  const isBooting = isAuthLoading || isWorkspaceLoading
+
+  if (isBooting) {
+    return (
+      <div className="app app-loading-overlay">
+        <div className="workspace-loading" role="status" aria-live="polite">
+          <div className="workspace-loading-spinner" aria-hidden="true" />
+          <p>{user ? 'Loading your workspace...' : 'Checking your session...'}</p>
+        </div>
+      </div>
+    )
   }
 
   return (

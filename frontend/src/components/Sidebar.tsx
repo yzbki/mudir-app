@@ -41,7 +41,7 @@ function Sidebar({
   }, [])
 
   const selectedBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
-  const enabledPageSet = new Set(selectedBusiness?.enabledPages ?? ['dashboard', 'employees', 'profile', 'schedule', 'inventory', 'tasks', 'customers'])
+  const enabledPageSet = new Set(selectedBusiness?.enabledPages ?? [])
   const isPageEnabled = (pageKey: string) => {
     if (pageKey === 'dashboard' || pageKey === 'employees' || pageKey === 'profile') {
       return true
