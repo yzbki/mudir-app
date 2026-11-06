@@ -726,7 +726,9 @@
 .business-selector-row-with-settings {
   width: 100%;
   max-width: 520px;
-  align-items: center;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
 }
 
 .business-selector {
@@ -738,12 +740,13 @@
 }
 
 .business-selector-with-settings {
-  width: auto;
+  width: 100%;
   min-width: 0;
   flex: 1 1 auto;
   height: 42px;
   margin: 0;
   vertical-align: middle;
+  align-self: stretch;
 }
 
 .business-settings-button {
@@ -761,8 +764,9 @@
   position: relative;
   top: 0;
   vertical-align: middle;
-  align-self: center;
+  align-self: stretch;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .business-form {
