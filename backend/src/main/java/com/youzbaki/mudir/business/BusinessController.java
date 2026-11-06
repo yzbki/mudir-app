@@ -5,6 +5,7 @@ import com.youzbaki.mudir.business.dto.BusinessDetailsRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberResponse;
 import com.youzbaki.mudir.business.dto.BusinessResponse;
+import com.youzbaki.mudir.business.dto.BusinessSettingsRequest;
 import com.youzbaki.mudir.user.User;
 import com.youzbaki.mudir.user.UserService;
 import org.springframework.http.ResponseEntity;
@@ -78,6 +79,20 @@ public class BusinessController {
         try {
             User actor = userService.getUserByEmail(authentication.getName());
             BusinessResponse response = businessService.updateBusinessDetails(actor, businessId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{businessId}/settings")
+    public ResponseEntity<?> updateBusinessSettings(
+            Authentication authentication,
+            @PathVariable Long businessId,
+            @RequestBody BusinessSettingsRequest request) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            BusinessResponse response = businessService.updateBusinessSettings(actor, businessId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

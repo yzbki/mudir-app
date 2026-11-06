@@ -14,6 +14,7 @@ type DashboardProps = {
     details: { address: string; phone: string; description: string },
   ) => Promise<void>
   deleteBusiness: (businessId: number) => Promise<void>
+  refreshBusinesses: () => Promise<void>
   businesses: Business[]
   selectedBusinessId: number | null
   setSelectedBusinessId: (businessId: number) => void
@@ -25,6 +26,7 @@ function Dashboard({
   deleteAccount,
   updateBusinessDetails,
   deleteBusiness,
+  refreshBusinesses,
   businesses,
   selectedBusinessId,
   setSelectedBusinessId,
@@ -34,6 +36,8 @@ function Dashboard({
   const [message, setMessage] = useState('')
   const [businessMembers, setBusinessMembers] = useState<BusinessMember[]>([])
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [settingsDraft, setSettingsDraft] = useState<Record<string, boolean>>({})
   const [detailDrafts, setDetailDrafts] = useState({
     address: '',
     phone: '',
@@ -43,7 +47,14 @@ function Dashboard({
   const [savingDetail, setSavingDetail] = useState<BusinessDetailField | null>(null)
 
   const selectedBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
-  const canDeleteBusiness = Boolean(selectedBusiness && selectedBusiness.ownerId === user.id)
+  const currentUserRole =
+    selectedBusiness && businessMembers.length > 0
+      ? businessMembers.find((member) => member.userId === user.id)?.role ?? 'EMPLOYEE'
+      : selectedBusiness && selectedBusiness.ownerId === user.id
+        ? 'OWNER'
+        : 'EMPLOYEE'
+  const canEditBusiness = currentUserRole === 'OWNER'
+  const canDeleteBusiness = canEditBusiness
 
   useEffect(() => {
     if (!selectedBusinessId) {
@@ -96,6 +107,24 @@ function Dashboard({
   ).length
   const managerCount = businessMembers.filter((member) => member.role === 'MANAGER').length
 
+  const optionalPageOptions = [
+    { key: 'schedule', label: 'Schedule' },
+    { key: 'inventory', label: 'Inventory' },
+    { key: 'tasks', label: 'Tasks' },
+    { key: 'customers', label: 'Customers' },
+  ]
+
+  useEffect(() => {
+    if (!selectedBusiness) {
+      setSettingsDraft({})
+      return
+    }
+
+    const enabledPages = selectedBusiness.enabledPages ?? ['dashboard', 'employees', 'profile', 'schedule', 'inventory', 'tasks', 'customers']
+    const nextDraft = Object.fromEntries(optionalPageOptions.map((page) => [page.key, enabledPages.includes(page.key)]))
+    setSettingsDraft(nextDraft)
+  }, [selectedBusinessId, selectedBusiness])
+
   const handleCreateBusiness = async () => {
     if (!businessName.trim()) {
       setMessage('Please enter a business name.')
@@ -118,7 +147,7 @@ function Dashboard({
       return
     }
 
-    const confirmed = window.confirm(`Are you sure you want to delete "${selectedBusiness.name}"?`)
+    const confirmed = window.confirm(`Are you sure you want to delete "${selectedBusiness.name}"? This action cannot be undone.`)
 
     if (!confirmed) {
       return
@@ -129,6 +158,48 @@ function Dashboard({
       setMessage('Business deleted successfully.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to delete business.')
+    }
+  }
+
+  const handleSaveBusinessSettings = async () => {
+    if (!selectedBusiness) {
+      return
+    }
+
+    if (!canDeleteBusiness) {
+      setMessage('Only the owner can manage business settings.')
+      return
+    }
+
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+
+    if (!token) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusiness.id}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          enabledPages: ['dashboard', 'employees', 'profile', ...optionalPageOptions.filter((page) => settingsDraft[page.key]).map((page) => page.key)],
+        }),
+      })
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok) {
+        throw new Error(typeof data === 'string' ? data : 'Failed to update business settings')
+      }
+
+      setMessage('Business settings saved successfully.')
+      setIsSettingsOpen(false)
+      await refreshBusinesses()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update business settings')
     }
   }
 
@@ -150,6 +221,11 @@ function Dashboard({
 
   const handleSaveBusinessDetail = async (field: BusinessDetailField) => {
     if (!selectedBusiness) {
+      return
+    }
+
+    if (!canEditBusiness) {
+      setMessage('Only the owner can edit business details.')
       return
     }
 
@@ -219,9 +295,9 @@ function Dashboard({
             </div>
           </>
         ) : (
-          <div className="business-selector-row">
+          <div className="business-selector-row business-selector-row-with-settings">
             <select
-              className="role-select business-selector"
+              className="role-select business-selector business-selector-with-settings"
               value={selectedBusinessId ?? ''}
               onChange={(event) => setSelectedBusinessId(Number(event.target.value))}
             >
@@ -231,123 +307,142 @@ function Dashboard({
                 </option>
               ))}
             </select>
+
+            {selectedBusiness && selectedBusiness.ownerId === user.id && (
+              <button
+                type="button"
+                className="secondary-button business-settings-button"
+                onClick={() => setIsSettingsOpen((current) => !current)}
+                aria-label="Open business settings"
+                title="Business settings"
+              >
+                ⚙
+              </button>
+            )}
           </div>
         )}
 
         {selectedBusiness && (
           <>
-            <div className="business-details-panel">
-              <div className="business-detail-row">
-                <div className="business-detail-label">
-                  <span>Name:</span>
-                </div>
-                <div className="business-detail-value business-detail-readonly">{selectedBusiness.name}</div>
-              </div>
+            {isSettingsOpen && canDeleteBusiness ? (
+              <div className="business-settings-panel">
+                <h2>Business Settings</h2>
 
-              {businessDetailFields.map(({ key, label, placeholder }) => {
-                const isEditing = editingDetail === key
-                const fieldValue = detailDrafts[key]
-
-                return (
-                  <div className="business-detail-row" key={key}>
-                    <div className="business-detail-label">
-                      <span>{label}</span>
-                      {!isEditing && (
-                        <button
-                          type="button"
-                          className="business-detail-edit-button"
-                          onClick={() => {
-                            setEditingDetail(key)
-                            setDetailDrafts((current) => ({
-                              ...current,
-                              [key]: getSelectedBusinessDetail(key),
-                            }))
-                          }}
-                          aria-label={`Edit ${label}`}
-                        >
-                          ✎
-                        </button>
-                      )}
-                    </div>
-
-                    {isEditing ? (
-                      <>
+                <div className="business-form">
+                  <div className="settings-list">
+                    {optionalPageOptions.map((page) => (
+                      <label key={page.key} className="settings-toggle-row">
                         <input
-                          type="text"
-                          placeholder={placeholder}
-                          value={fieldValue}
+                          type="checkbox"
+                          checked={Boolean(settingsDraft[page.key])}
                           onChange={(event) =>
-                            setDetailDrafts((current) => ({
+                            setSettingsDraft((current) => ({
                               ...current,
-                              [key]: event.target.value,
+                              [page.key]: event.target.checked,
                             }))
                           }
                         />
-
-                        <div className="business-detail-actions">
-                          <button
-                            type="button"
-                            className="primary-button business-detail-save-button"
-                            onClick={() => void handleSaveBusinessDetail(key)}
-                            disabled={savingDetail === key}
-                          >
-                            {savingDetail === key ? 'Saving...' : 'Save'}
-                          </button>
-                          <button
-                            type="button"
-                            className="business-detail-cancel-button"
-                            onClick={() => cancelBusinessDetailEdit(key)}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="business-detail-value">{fieldValue || 'Not provided'}</div>
-                    )}
+                        <span>{page.label}</span>
+                      </label>
+                    ))}
                   </div>
-                )
-              })}
-            </div>
 
-            {isCreateFormOpen && (
-              <div className="business-form inline-create-form">
-                <input
-                  type="text"
-                  placeholder="Business name"
-                  value={businessName}
-                  onChange={(event) => setBusinessName(event.target.value)}
-                />
+                  <div className="business-action-row">
+                    <button
+                      type="button"
+                      className="delete-button business-action-button"
+                      onClick={handleDeleteBusiness}
+                    >
+                      Delete Business
+                    </button>
 
-                <button type="button" className="primary-button" onClick={() => void handleCreateBusiness()}>
-                  Create Business
-                </button>
+                    <button
+                      type="button"
+                      className="primary-button business-action-button"
+                      onClick={() => void handleSaveBusinessSettings()}
+                    >
+                      Save Settings
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="business-details-panel">
+                <div className="business-detail-row">
+                  <div className="business-detail-label">
+                    <span>Name:</span>
+                  </div>
+                  <div className="business-detail-value business-detail-readonly">{selectedBusiness.name}</div>
+                </div>
+
+                {businessDetailFields.map(({ key, label, placeholder }) => {
+                  const isEditing = editingDetail === key
+                  const fieldValue = detailDrafts[key]
+
+                  return (
+                    <div className="business-detail-row" key={key}>
+                      <div className="business-detail-label">
+                        <span>{label}</span>
+                        {!isEditing && canEditBusiness && (
+                          <button
+                            type="button"
+                            className="business-detail-edit-button"
+                            onClick={() => {
+                              setEditingDetail(key)
+                              setDetailDrafts((current) => ({
+                                ...current,
+                                [key]: getSelectedBusinessDetail(key),
+                              }))
+                            }}
+                            aria-label={`Edit ${label}`}
+                          >
+                            ✎
+                          </button>
+                        )}
+                      </div>
+
+                      {isEditing ? (
+                        <>
+                          <input
+                            type="text"
+                            placeholder={placeholder}
+                            value={fieldValue}
+                            onChange={(event) =>
+                              setDetailDrafts((current) => ({
+                                ...current,
+                                [key]: event.target.value,
+                              }))
+                            }
+                            disabled={!canEditBusiness}
+                          />
+
+                          <div className="business-detail-actions">
+                            <button
+                              type="button"
+                              className="primary-button business-detail-save-button"
+                              onClick={() => void handleSaveBusinessDetail(key)}
+                              disabled={savingDetail === key || !canEditBusiness}
+                            >
+                              {savingDetail === key ? 'Saving...' : 'Save'}
+                            </button>
+                            <button
+                              type="button"
+                              className="business-detail-cancel-button"
+                              onClick={() => cancelBusinessDetailEdit(key)}
+                              disabled={!canEditBusiness}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="business-detail-value">{fieldValue || 'Not provided'}</div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
-
-            <div className="business-action-row">
-              <button
-                type="button"
-                className="delete-button business-action-button"
-                onClick={handleDeleteBusiness}
-                disabled={!canDeleteBusiness}
-              >
-                Delete Business
-              </button>
-
-              <button
-                type="button"
-                className="primary-button business-action-button"
-                onClick={() => {
-                  setIsCreateFormOpen((current) => !current)
-                  if (!isCreateFormOpen) {
-                    setMessage('')
-                  }
-                }}
-              >
-                {isCreateFormOpen ? 'Cancel' : '+ Create Business'}
-              </button>
-            </div>
           </>
         )}
 
@@ -384,6 +479,40 @@ function Dashboard({
           <span>Open Tasks</span>
           <strong>0</strong>
         </div>
+      </div>
+
+      <div className="business-section">
+        <h2>Create business</h2>
+
+        <div className="business-action-row">
+          <button
+            type="button"
+            className="primary-button business-action-button"
+            onClick={() => {
+              setIsCreateFormOpen((current) => !current)
+              if (!isCreateFormOpen) {
+                setMessage('')
+              }
+            }}
+          >
+            {isCreateFormOpen ? 'Cancel' : '+ Create Business'}
+          </button>
+        </div>
+
+        {isCreateFormOpen && (
+          <div className="business-form inline-create-form">
+            <input
+              type="text"
+              placeholder="Business name"
+              value={businessName}
+              onChange={(event) => setBusinessName(event.target.value)}
+            />
+
+            <button type="button" className="primary-button" onClick={() => void handleCreateBusiness()}>
+              Create Business
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="account-card dashboard-account">

@@ -1,5 +1,7 @@
 package com.youzbaki.mudir.business.dto;
 
+import java.util.List;
+
 public record BusinessResponse(
         Long id,
         String name,
@@ -7,5 +9,6 @@ public record BusinessResponse(
         String ownerName,
         String address,
         String phone,
-        String description
+        String description,
+        List<String> enabledPages
 ) {}

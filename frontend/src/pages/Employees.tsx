@@ -24,6 +24,13 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
 
   const currentBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
   const ownerId = currentBusiness?.ownerId ?? null
+  const currentUserRole: BusinessRole =
+    currentBusiness && members.length > 0
+      ? members.find((member) => member.userId === user?.id)?.role ?? (user?.id === ownerId ? 'OWNER' : 'EMPLOYEE')
+      : user?.id === ownerId
+        ? 'OWNER'
+        : 'EMPLOYEE'
+  const canManageEmployees = currentUserRole === 'OWNER' || currentUserRole === 'MANAGER'
 
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token') || ''
 
@@ -100,6 +107,11 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   const handleAddEmployee = async () => {
     const token = getToken()
 
+    if (!canManageEmployees) {
+      setMessage('Only the owner or a manager can add employees.')
+      return
+    }
+
     if (!token || !selectedBusinessId || !selectedUserId) {
       setMessage('Select a business and employee first.')
       return
@@ -133,6 +145,11 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   }
 
   const handleInviteEmployee = () => {
+    if (!canManageEmployees) {
+      setMessage('Only the owner or a manager can invite employees.')
+      return
+    }
+
     if (!selectedBusinessId) {
       setMessage('Select a business before inviting an employee.')
       return
@@ -176,6 +193,11 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
   const handleRoleChange = async (member: BusinessMember, role: BusinessRole) => {
     const token = getToken()
 
+    if (!canManageEmployees) {
+      setMessage('Only the owner or a manager can change employee roles.')
+      return
+    }
+
     if (!token || !selectedBusinessId) return
 
     if (member.userId === user?.id) {
@@ -216,6 +238,11 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
 
   const handleRemoveEmployee = async (member: BusinessMember) => {
     const token = getToken()
+
+    if (!canManageEmployees) {
+      setMessage('Only the owner or a manager can remove employees.')
+      return
+    }
 
     if (!token || !selectedBusinessId) return
 
@@ -278,65 +305,71 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
         </div>
       </div>
 
-      <div className="business-section">
-        <h2>Add employee</h2>
+      {canManageEmployees && (
+        <div className="business-section">
+          <h2>Add employee</h2>
 
-        <div className="business-form employee-form">
-          <div className="employee-dropdown-row">
-            <select
-              className="role-select"
-              value={selectedUserId}
-              onChange={(event) => setSelectedUserId(event.target.value)}
-            >
-              {allUsers.map((person) => (
-                <option key={person.id} value={String(person.id)}>
-                  {person.name} ({person.email})
-                </option>
-              ))}
-            </select>
+          <div className="business-form employee-form">
+            <div className="employee-dropdown-row">
+              <select
+                className="role-select"
+                value={selectedUserId}
+                onChange={(event) => setSelectedUserId(event.target.value)}
+              >
+                {allUsers.map((person) => (
+                  <option key={person.id} value={String(person.id)}>
+                    {person.name} ({person.email})
+                  </option>
+                ))}
+              </select>
 
-            <select
-              className="role-select small-select"
-              value={selectedRole}
-              onChange={(event) => setSelectedRole(event.target.value as BusinessRole)}
-            >
-              {roleOptions.map((role) => (
-                <option key={role} value={role}>
-                  {role}
-                </option>
-              ))}
-            </select>
-          </div>
+              <select
+                className="role-select small-select"
+                value={selectedRole}
+                onChange={(event) => setSelectedRole(event.target.value as BusinessRole)}
+              >
+                {roleOptions.map((role) => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="employee-action-row">
-            <button className="primary-button employee-action-button" onClick={handleAddEmployee}>
-              + Add Employee
-            </button>
+            <div className="employee-action-row">
+              <button className="primary-button employee-action-button" onClick={handleAddEmployee}>
+                + Add Employee
+              </button>
 
-            <button className="primary-button employee-action-button" onClick={toggleInviteForm}>
-              {isInviteOpen ? 'Cancel' : 'Invite Employee'}
-            </button>
-          </div>
-
-          {isInviteOpen && (
-            <div className="invite-email-row">
-              <input
-                type="email"
-                placeholder="Employee email"
-                value={inviteEmail}
-                onChange={(event) => setInviteEmail(event.target.value)}
-              />
-
-              <button className="primary-button" onClick={handleInviteEmployee}>
-                Send Invite
+              <button className="primary-button employee-action-button" onClick={toggleInviteForm}>
+                {isInviteOpen ? 'Cancel' : 'Invite Employee'}
               </button>
             </div>
-          )}
+
+            {isInviteOpen && (
+              <div className="invite-email-row">
+                <input
+                  type="email"
+                  placeholder="Employee email"
+                  value={inviteEmail}
+                  onChange={(event) => setInviteEmail(event.target.value)}
+                />
+
+                <button className="primary-button" onClick={handleInviteEmployee}>
+                  Send Invite
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="business-section">
         <h2>Team members</h2>
+
+        {!canManageEmployees && (
+          <p className="page-subtitle">You can view this team, but only the owner or a manager can manage assignments.</p>
+        )}
 
         {members.length === 0 ? (
           <div className="empty-state small-empty-state">
@@ -355,7 +388,7 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
 
                   {isOwnerMember ? (
                     <p>Owner</p>
-                  ) : (
+                  ) : canManageEmployees ? (
                     <div className="member-action-row">
                       <select
                         className="role-select small-select"
@@ -379,6 +412,8 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
                         Remove
                       </button>
                     </div>
+                  ) : (
+                    <p>{member.role}</p>
                   )}
                 </div>
               )

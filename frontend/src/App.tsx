@@ -62,6 +62,16 @@ function App() {
 
   const [page, setPage] = useState('dashboard')
 
+  const isPageEnabled = (targetPage: string, targetBusinessId: number | null) => {
+    if (targetPage === 'dashboard' || targetPage === 'employees' || targetPage === 'profile') {
+      return true
+    }
+
+    const selectedBusiness = businesses.find((business) => business.id === targetBusinessId) || null
+    const enabledPages = selectedBusiness?.enabledPages ?? ['dashboard', 'employees', 'profile', 'schedule', 'inventory', 'tasks', 'customers']
+    return enabledPages.includes(targetPage)
+  }
+
   const loadBusinesses = async (explicitToken?: string) => {
     const token = explicitToken || localStorage.getItem('token') || sessionStorage.getItem('token')
 
@@ -144,6 +154,14 @@ function App() {
 
     loadBusinesses()
   }, [user])
+
+  useEffect(() => {
+    if (!user || isPageEnabled(page, selectedBusinessId)) {
+      return
+    }
+
+    setPage('dashboard')
+  }, [page, selectedBusinessId, user, businesses])
 
   useEffect(() => {
     if (user || mode !== 'login') {
@@ -483,6 +501,8 @@ function App() {
         logout={logout}
         setMode={setMode}
         isLoginPage={!user && mode === 'login'}
+        businesses={businesses}
+        selectedBusinessId={selectedBusinessId}
       />
 
       <main className="main-content">
@@ -574,6 +594,7 @@ function App() {
                 deleteAccount={deleteAccount}
                 updateBusinessDetails={updateBusinessDetails}
                 deleteBusiness={deleteBusiness}
+                refreshBusinesses={loadBusinesses}
                 businesses={businesses}
                 selectedBusinessId={selectedBusinessId}
                 setSelectedBusinessId={setSelectedBusinessId}

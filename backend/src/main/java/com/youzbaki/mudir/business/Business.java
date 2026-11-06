@@ -4,7 +4,9 @@ import com.youzbaki.mudir.user.User;
 import jakarta.persistence.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "businesses")
@@ -32,6 +34,11 @@ public class Business {
 
     @OneToMany(mappedBy = "business", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<BusinessMember> members = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "business_enabled_pages", joinColumns = @JoinColumn(name = "business_id"))
+    @Column(name = "page_key", nullable = false)
+    private Set<String> enabledPages = new LinkedHashSet<>(List.of("dashboard", "employees", "profile", "schedule", "inventory", "tasks", "customers"));
 
     public Business() {
     }
@@ -91,5 +98,16 @@ public class Business {
 
     public void setMembers(List<BusinessMember> members) {
         this.members = members;
+    }
+
+    public Set<String> getEnabledPages() {
+        if (enabledPages == null || enabledPages.isEmpty()) {
+            enabledPages = new LinkedHashSet<>(List.of("dashboard", "employees", "profile", "schedule", "inventory", "tasks", "customers"));
+        }
+        return enabledPages;
+    }
+
+    public void setEnabledPages(Set<String> enabledPages) {
+        this.enabledPages = enabledPages == null ? new LinkedHashSet<>() : new LinkedHashSet<>(enabledPages);
     }
 }

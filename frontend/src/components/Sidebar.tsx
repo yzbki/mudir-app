@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { User } from '../types/User'
 
+import type { Business } from '../types/Business'
+
 type SidebarProps = {
   setPage: (page: string) => void
   user: User | null
   logout: () => void
   setMode: (mode: 'login' | 'signup') => void
   isLoginPage: boolean
+  businesses: Business[]
+  selectedBusinessId: number | null
 }
 
 function Sidebar({
@@ -15,6 +19,8 @@ function Sidebar({
   logout,
   setMode,
   isLoginPage,
+  businesses,
+  selectedBusinessId,
 }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     if (typeof window === 'undefined') return false
@@ -33,6 +39,16 @@ function Sidebar({
 
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  const selectedBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
+  const enabledPageSet = new Set(selectedBusiness?.enabledPages ?? ['dashboard', 'employees', 'profile', 'schedule', 'inventory', 'tasks', 'customers'])
+  const isPageEnabled = (pageKey: string) => {
+    if (pageKey === 'dashboard' || pageKey === 'employees' || pageKey === 'profile') {
+      return true
+    }
+
+    return enabledPageSet.has(pageKey)
+  }
 
   return (
     <aside className={`sidebar${isCollapsed ? ' sidebar-collapsed' : ''}`}>
@@ -63,25 +79,33 @@ function Sidebar({
           <span>Employees</span>
         </button>
 
-        <button aria-label="Schedule" title="Schedule" disabled={!user} onClick={() => setPage('schedule')}>
-          <img src="/interface-icons/schedule.svg" alt="" />
-          <span>Schedule</span>
-        </button>
+        {isPageEnabled('schedule') && (
+          <button aria-label="Schedule" title="Schedule" disabled={!user} onClick={() => setPage('schedule')}>
+            <img src="/interface-icons/schedule.svg" alt="" />
+            <span>Schedule</span>
+          </button>
+        )}
 
-        <button aria-label="Inventory" title="Inventory" disabled={!user} onClick={() => setPage('inventory')}>
-          <img src="/interface-icons/inventory.svg" alt="" />
-          <span>Inventory</span>
-        </button>
+        {isPageEnabled('inventory') && (
+          <button aria-label="Inventory" title="Inventory" disabled={!user} onClick={() => setPage('inventory')}>
+            <img src="/interface-icons/inventory.svg" alt="" />
+            <span>Inventory</span>
+          </button>
+        )}
 
-        <button aria-label="Tasks" title="Tasks" disabled={!user} onClick={() => setPage('tasks')}>
-          <img src="/interface-icons/tasks.svg" alt="" />
-          <span>Tasks</span>
-        </button>
+        {isPageEnabled('tasks') && (
+          <button aria-label="Tasks" title="Tasks" disabled={!user} onClick={() => setPage('tasks')}>
+            <img src="/interface-icons/tasks.svg" alt="" />
+            <span>Tasks</span>
+          </button>
+        )}
 
-        <button aria-label="Customers" title="Customers" disabled={!user} onClick={() => setPage('customers')}>
-          <img src="/interface-icons/customers.svg" alt="" />
-          <span>Customers</span>
-        </button>
+        {isPageEnabled('customers') && (
+          <button aria-label="Customers" title="Customers" disabled={!user} onClick={() => setPage('customers')}>
+            <img src="/interface-icons/customers.svg" alt="" />
+            <span>Customers</span>
+          </button>
+        )}
 
         <button
           aria-label="Profile"

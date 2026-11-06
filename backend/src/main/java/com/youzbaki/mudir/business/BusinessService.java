@@ -10,12 +10,17 @@ import com.youzbaki.mudir.user.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.youzbaki.mudir.business.dto.BusinessSettingsRequest;
+
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 @Service
 public class BusinessService {
+
+    private static final Set<String> REQUIRED_PAGE_KEYS = Set.of("dashboard", "employees", "profile");
+    private static final Set<String> OPTIONAL_PAGE_KEYS = Set.of("schedule", "inventory", "tasks", "customers");
 
     private final BusinessRepository businessRepository;
     private final BusinessMemberRepository businessMemberRepository;
@@ -59,7 +64,7 @@ public class BusinessService {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
-        if (!isOwnerOrManager(actor, business) && !business.getOwner().getId().equals(actor.getId())) {
+        if (!isBusinessMember(actor, business)) {
             throw new IllegalArgumentException("You do not have access to this business");
         }
 
@@ -110,8 +115,8 @@ public class BusinessService {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));
 
-        if (!isOwnerOrManager(actor, business)) {
-            throw new IllegalArgumentException("Only the business owner or a manager can update business details");
+        if (!isBusinessOwner(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner can update business details");
         }
 
         if (request != null) {
@@ -128,6 +133,40 @@ public class BusinessService {
 
         Business savedBusiness = businessRepository.save(business);
         return toBusinessResponse(savedBusiness);
+    }
+
+    @Transactional
+    public BusinessResponse updateBusinessSettings(User actor, Long businessId, BusinessSettingsRequest request) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!business.getOwner().getId().equals(actor.getId())) {
+            throw new IllegalArgumentException("Only the business owner can update business settings");
+        }
+
+        if (request == null || request.enabledPages() == null) {
+            business.setEnabledPages(new LinkedHashSet<>(REQUIRED_PAGE_KEYS));
+            return toBusinessResponse(businessRepository.save(business));
+        }
+
+        Set<String> normalizedPages = new LinkedHashSet<>();
+        normalizedPages.addAll(REQUIRED_PAGE_KEYS);
+
+        for (String pageKey : request.enabledPages()) {
+            if (pageKey == null) {
+                continue;
+            }
+            String normalized = pageKey.trim();
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            if (OPTIONAL_PAGE_KEYS.contains(normalized) || REQUIRED_PAGE_KEYS.contains(normalized)) {
+                normalizedPages.add(normalized);
+            }
+        }
+
+        business.setEnabledPages(normalizedPages);
+        return toBusinessResponse(businessRepository.save(business));
     }
 
     @Transactional
@@ -179,6 +218,15 @@ public class BusinessService {
                                 && (member.getRole() == BusinessRole.MANAGER || member.getRole() == BusinessRole.OWNER));
     }
 
+    public boolean isBusinessOwner(User user, Business business) {
+        return business.getOwner().getId().equals(user.getId());
+    }
+
+    public boolean isBusinessMember(User user, Business business) {
+        return business.getMembers().stream()
+                .anyMatch(member -> member.getUser().getId().equals(user.getId()));
+    }
+
     private BusinessResponse toBusinessResponse(Business business) {
         return new BusinessResponse(
                 business.getId(),
@@ -187,7 +235,8 @@ public class BusinessService {
                 business.getOwner().getName(),
                 business.getAddress(),
                 business.getPhone(),
-                business.getDescription()
+                business.getDescription(),
+                business.getEnabledPages().stream().sorted().toList()
         );
     }
 

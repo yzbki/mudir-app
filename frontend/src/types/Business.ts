@@ -8,6 +8,7 @@ export type Business = {
   address: string | null
   phone: string | null
   description: string | null
+  enabledPages?: string[]
 }
 
 export type BusinessMember = {
