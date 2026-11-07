@@ -2,6 +2,7 @@ package com.youzbaki.mudir.business;
 
 import com.youzbaki.mudir.business.dto.BusinessCreateRequest;
 import com.youzbaki.mudir.business.dto.BusinessDetailsRequest;
+import com.youzbaki.mudir.business.dto.BusinessMemberColorRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberRequest;
 import com.youzbaki.mudir.business.dto.BusinessMemberResponse;
 import com.youzbaki.mudir.business.dto.BusinessResponse;
@@ -16,13 +17,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 @Service
 public class BusinessService {
 
     private static final Set<String> REQUIRED_PAGE_KEYS = Set.of("dashboard", "employees", "profile");
     private static final Set<String> OPTIONAL_PAGE_KEYS = Set.of("schedule", "inventory", "tasks", "customers");
+    private static final Pattern HEX_COLOR = Pattern.compile("^#[0-9a-fA-F]{6}$");
 
     private final BusinessRepository businessRepository;
     private final BusinessMemberRepository businessMemberRepository;
@@ -132,6 +136,34 @@ public class BusinessService {
         BusinessMember saved = businessMemberRepository.save(existing);
 
         return toMemberResponse(saved);
+    }
+
+    @Transactional
+    public BusinessMemberResponse updateMemberColor(User actor, Long businessId, Long userId, BusinessMemberColorRequest request) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner or a manager can change member colours");
+        }
+
+        User targetUser = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        BusinessMember member = businessMemberRepository.findByBusinessAndUser(business, targetUser)
+                .orElseThrow(() -> new IllegalArgumentException("Employee is not assigned to this business"));
+
+        String color = request == null || request.color() == null ? "" : request.color().trim();
+
+        if (color.isEmpty()) {
+            member.setColor(null);
+        } else if (HEX_COLOR.matcher(color).matches()) {
+            member.setColor(color.toLowerCase(Locale.ROOT));
+        } else {
+            throw new IllegalArgumentException("Colour must be a hex value like #4f8cff");
+        }
+
+        return toMemberResponse(businessMemberRepository.save(member));
     }
 
     @Transactional
@@ -397,7 +429,8 @@ public class BusinessService {
                 member.getUser().getId(),
                 member.getUser().getName(),
                 member.getRole(),
-                member.getTitle()
+                member.getTitle(),
+                member.getColor()
         );
     }
 

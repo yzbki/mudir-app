@@ -1458,8 +1458,10 @@
   gap: 8px;
 }
 
+/* Defaults are neutral (employee has no colour); Schedule.tsx overrides both with the member's colour. */
 .shift-card {
-  --shift-accent: #4f8cff;
+  --shift-accent: #3a414d;
+  --shift-time-color: #c9d1dc;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -1502,7 +1504,7 @@
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  color: var(--shift-accent);
+  color: var(--shift-time-color);
   font-size: 13px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1679,6 +1681,300 @@
 
 .team-card {
   min-height: 110px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Uniform cards: with every settings panel closed, all rows share the tallest card's height.
+   While a panel is open, rows size to their own content (so other rows don't balloon),
+   and cards in the open card's row still stretch to match it. */
+.team-list {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+
+.team-list.has-open-settings {
+  grid-auto-rows: auto;
+}
+
+.team-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team-card-header .team-card-name {
+  margin: 0;
+  min-width: 0;
+}
+
+.member-settings-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px !important;
+  height: 32px;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #252a33 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #7d8592 !important;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.member-settings-toggle svg {
+  transition: transform 0.25s ease;
+}
+
+.member-settings-toggle:hover,
+.member-settings-toggle.is-open {
+  background: #1a1f27 !important;
+  border-color: #3a414d !important;
+  color: #e9edf3 !important;
+}
+
+.member-settings-toggle.is-open svg {
+  transform: rotate(60deg);
+}
+
+.member-settings-toggle:focus-visible {
+  outline: 2px solid #315A9E;
+  outline-offset: 2px;
+}
+
+.team-card.is-settings-open {
+  border-color: #3a414d;
+}
+
+.member-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px solid #1e232b;
+  animation: member-settings-in 0.16s ease-out;
+}
+
+@keyframes member-settings-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.member-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.member-settings-field .small-select {
+  width: 100%;
+  flex: none;
+}
+
+.member-settings-label {
+  color: #7d8592;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.member-settings-note {
+  margin: 0;
+  color: #7d8592;
+  font-size: 12px;
+}
+
+.member-settings-button {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border: 1px solid #2f3846 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #c9d1dc !important;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.member-settings-button:hover:not(:disabled) {
+  background: #1c222c !important;
+  color: #ffffff !important;
+}
+
+.member-settings-button.is-danger {
+  border-color: rgba(217, 45, 32, 0.55) !important;
+  color: #f19a92 !important;
+}
+
+.member-settings-button.is-danger:hover:not(:disabled),
+.member-settings-button.is-danger-solid {
+  background: #b42318 !important;
+  border-color: #b42318 !important;
+  color: #ffffff !important;
+}
+
+.member-settings-button.is-danger-solid:hover:not(:disabled) {
+  background: #d92d20 !important;
+  border-color: #d92d20 !important;
+}
+
+.member-settings-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.member-settings-button:focus-visible {
+  outline: 2px solid #315A9E;
+  outline-offset: 2px;
+}
+
+.member-remove-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(217, 45, 32, 0.45);
+  border-radius: 10px;
+  background: rgba(180, 35, 24, 0.1);
+}
+
+.member-remove-confirm p {
+  margin: 0;
+  color: #e3c6c3;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.member-remove-confirm strong {
+  color: #ffffff;
+}
+
+.member-remove-confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.team-card-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.member-color-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.member-color-dot.is-none {
+  border: 1.5px dashed #4a525e;
+}
+
+.member-color-label {
+  color: #7d8592;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.member-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.member-color-swatch,
+.member-color-custom {
+  position: relative;
+  flex: none;
+  width: 22px !important;
+  height: 22px;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 2px solid transparent !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.member-color-swatch:hover:not(:disabled),
+.member-color-custom:hover {
+  transform: scale(1.12);
+}
+
+.member-color-swatch.is-active,
+.member-color-custom.is-active {
+  box-shadow: 0 0 0 2px #0b0d10, 0 0 0 4px #e9edf3;
+}
+
+.member-color-swatch:focus-visible,
+.member-color-custom:focus-within {
+  outline: 2px solid #315A9E;
+  outline-offset: 2px;
+}
+
+/* "No colour": a dashed ring with a diagonal slash. */
+.member-color-swatch.is-none {
+  background: transparent !important;
+  border: 1.5px dashed #5b6472 !important;
+}
+
+.member-color-swatch.is-none::after {
+  content: '';
+  position: absolute;
+  inset: 50% 2px auto;
+  height: 1.5px;
+  background: #5b6472;
+  transform: rotate(-45deg);
+}
+
+.member-color-custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(#e5677a, #f2a93b, #8bc34a, #36b6d1, #4f8cff, #a37bf5, #e5677a);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.member-color-custom.is-active span {
+  display: none;
+}
+
+/* The native input covers the swatch invisibly so clicking it opens the system colour picker. */
+.member-color-custom input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .member-action-row {

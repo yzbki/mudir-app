@@ -8,5 +8,6 @@ public record BusinessMemberResponse(
         Long userId,
         String userName,
         BusinessRole role,
-        String title
+        String title,
+        String color
 ) {}

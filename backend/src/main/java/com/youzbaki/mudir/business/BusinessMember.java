@@ -31,6 +31,10 @@ public class BusinessMember {
     @Column(nullable = true)
     private String title;
 
+    /** Display colour as "#rrggbb"; null means no colour. */
+    @Column(nullable = true, length = 7)
+    private String color;
+
     public BusinessMember() {
     }
 
@@ -81,5 +85,13 @@ public class BusinessMember {
 
     public void setTitle(String title) {
         this.title = title == null || title.trim().isEmpty() ? null : title.trim();
+    }
+
+    public String getColor() {
+        return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
     }
 }

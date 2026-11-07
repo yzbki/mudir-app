@@ -18,4 +18,6 @@ export type BusinessMember = {
   userName: string
   role: BusinessRole
   title?: string | null
+  /** Display colour as "#rrggbb"; null/undefined means no colour. */
+  color?: string | null
 }

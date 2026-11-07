@@ -40,7 +40,9 @@ const getStartOfWeek = (date: Date) => {
   return start
 }
 
-const getStartOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
+type CalendarView = 'month' | 'year' | 'decade' | 'century'
+
+const getStartOfMonth =(date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
 
 const addDays = (date: Date, days: number) => {
   const next = new Date(date)
@@ -84,19 +86,23 @@ const parseTimeToMinutes = (value: string) => {
   return hours * 60 + minutes
 }
 
-// Stable per-employee accent so the same person is easy to spot across the week.
-const EMPLOYEE_ACCENTS = ['#4f8cff', '#2fbf8f', '#f2a93b', '#e5677a', '#a37bf5', '#36b6d1', '#d98b4a', '#8bc34a']
-const getEmployeeAccent = (userId: number) => EMPLOYEE_ACCENTS[Math.abs(userId) % EMPLOYEE_ACCENTS.length]
+// Shift cards use the colour set for the employee on the Employees page; no colour = neutral card.
+const getShiftColorStyle = (color: string | null | undefined) =>
+  (color ? { '--shift-accent': color, '--shift-time-color': color } : {}) as CSSProperties
 
 function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
   const [selectedScheduleDate, setSelectedScheduleDate] = useState(new Date())
   // The month the calendar is showing. Controlled so that jumping to a date
   // (Today button, week arrows, day headers) also scrolls the calendar to it.
   const [calendarActiveStartDate, setCalendarActiveStartDate] = useState(() => getStartOfMonth(new Date()))
+  // Which zoom level the calendar is on (days / months / years / decades). Controlled so jumping
+  // to a date always returns to the day grid, even if the user had drilled up to a year or decade.
+  const [calendarView, setCalendarView] = useState<CalendarView>('month')
 
   const goToDate = (date: Date) => {
     setSelectedScheduleDate(date)
     setCalendarActiveStartDate(getStartOfMonth(date))
+    setCalendarView('month')
   }
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [selectedShiftDate, setSelectedShiftDate] = useState(() => formatDateKey(new Date()))
@@ -423,9 +429,9 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
             type="button"
             className="calendar-reset-button"
             onClick={() => goToDate(new Date())}
-            title="Jump back to today's date"
+            title="Return the calendar to today's date and month"
           >
-            Today
+            Reset to Today
           </button>
         </div>
 
@@ -438,6 +444,8 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
                 setCalendarActiveStartDate(activeStartDate)
               }
             }}
+            view={calendarView}
+            onViewChange={({ view }) => setCalendarView(view)}
             onChange={(value) => {
               if (value instanceof Date) {
                 setSelectedScheduleDate(value)
@@ -592,13 +600,14 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
                           const employeeTitle = shift.title?.trim() || 'Employee'
                           const isSelected = selectedShiftId === shift.id
                           const isEditing = canManageSchedule && editingShiftId === shift.id && shiftDraft !== null
-                          const accent = getEmployeeAccent(isEditing ? Number(shiftDraft.userId) : shift.userId)
+                          const colorUserId = isEditing ? Number(shiftDraft.userId) : shift.userId
+                          const memberColor = members.find((member) => member.userId === colorUserId)?.color
 
                           return (
                             <li
                               key={shift.id}
                               className={`shift-card ${isSelected ? 'is-selected' : ''} ${isEditing ? 'is-editing' : ''}`}
-                              style={{ '--shift-accent': accent } as CSSProperties}
+                              style={getShiftColorStyle(memberColor)}
                             >
                               {isEditing ? (
                                 <form
