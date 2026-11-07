@@ -11,6 +11,8 @@ import com.youzbaki.mudir.business.dto.BusinessShiftRequest;
 import com.youzbaki.mudir.business.dto.BusinessShiftResponse;
 import com.youzbaki.mudir.user.User;
 import com.youzbaki.mudir.user.UserService;
+import com.youzbaki.mudir.user.EmailAlreadyRegisteredException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -69,6 +71,8 @@ public class BusinessController {
             User actor = userService.getUserByEmail(authentication.getName());
             BusinessMemberResponse response = businessService.assignEmployee(actor, businessId, request);
             return ResponseEntity.ok(response);
+        } catch (EmailAlreadyRegisteredException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

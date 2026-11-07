@@ -4,6 +4,8 @@ import com.youzbaki.mudir.auth.dto.GoogleLoginRequest;
 import com.youzbaki.mudir.auth.dto.LoginRequest;
 import com.youzbaki.mudir.auth.dto.RegisterRequest;
 import com.youzbaki.mudir.service.AuthService;
+import com.youzbaki.mudir.user.EmailAlreadyRegisteredException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -23,6 +25,8 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         try {
             return ResponseEntity.ok(authService.register(request));
+        } catch (EmailAlreadyRegisteredException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

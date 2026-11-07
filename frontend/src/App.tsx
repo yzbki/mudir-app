@@ -44,6 +44,21 @@ declare global {
   }
 }
 
+// The backend returns JSON on success but plain-text messages on errors; this handles both.
+const parseResponseData = async (response: Response) => {
+  const text = await response.text()
+
+  if (!text) {
+    return null
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return text
+  }
+}
+
 function App() {
   const [user, setUser] = useState<User | null>(null)
   const [businesses, setBusinesses] = useState<Business[]>([])
@@ -58,7 +73,12 @@ function App() {
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   const [isBusinessesReady, setIsBusinessesReady] = useState(false)
-  const googleButtonRef = useRef<HTMLDivElement | null>(null)
+  // State (via a callback ref) rather than a plain ref, so the effect that draws the Google button
+  // re-runs whenever the container mounts or unmounts.
+  const [googleButtonEl, setGoogleButtonEl] = useState<HTMLDivElement | null>(null)
+  const googleCredentialHandlerRef = useRef<(response: { credential: string }) => void>(() => {})
+  // Google Identity Services' initialize() should run once, not every time the button is redrawn.
+  const isGoogleSignInInitializedRef = useRef(false)
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080'
 
@@ -180,30 +200,35 @@ function App() {
     setPage('dashboard')
   }, [page, selectedBusinessId, user, businesses])
 
+  // Draw the Google button whenever its container is on screen. This is keyed on the container
+  // element itself (a callback ref), not on user/mode, so it also runs when the container first
+  // appears after the "Checking your session..." screen. If the Google script hasn't finished
+  // loading yet, it waits for the script's load event.
   useEffect(() => {
-    if (user || mode !== 'login') {
-      return
-    }
-
-    if (!clientId) {
-      setMessage('Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart Vite.')
+    if (!googleButtonEl || !clientId) {
       return
     }
 
     const renderGoogleButton = () => {
-      if (!window.google?.accounts?.id || !googleButtonRef.current) {
+      const googleId = window.google?.accounts?.id
+      if (!googleId) {
         return
       }
 
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: handleGoogleCredentialResponse,
-        auto_select: false,
-        cancel_on_tap_outside: true,
-      })
+      // initialize() only needs to happen once per page load; calling it again makes GIS log warnings.
+      // The callback goes through a ref so it always uses the latest handler (e.g. current "Stay logged in").
+      if (!isGoogleSignInInitializedRef.current) {
+        googleId.initialize({
+          client_id: clientId,
+          callback: (response) => googleCredentialHandlerRef.current(response),
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        })
+        isGoogleSignInInitializedRef.current = true
+      }
 
-      googleButtonRef.current.innerHTML = ''
-      window.google.accounts.id.renderButton(googleButtonRef.current, {
+      googleButtonEl.replaceChildren()
+      googleId.renderButton(googleButtonEl, {
         theme: 'outline',
         size: 'large',
         width: '100%',
@@ -213,17 +238,16 @@ function App() {
       })
     }
 
-    const googleScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]')
-
-    if (!window.google?.accounts?.id) {
-      if (googleScript) {
-        googleScript.addEventListener('load', renderGoogleButton, { once: true })
-      }
+    if (window.google?.accounts?.id) {
+      renderGoogleButton()
       return
     }
 
-    renderGoogleButton()
-  }, [user, mode, clientId])
+    const googleScript = document.querySelector('script[src*="accounts.google.com/gsi/client"]')
+    googleScript?.addEventListener('load', renderGoogleButton, { once: true })
+
+    return () => googleScript?.removeEventListener('load', renderGoogleButton)
+  }, [googleButtonEl, clientId])
 
   const finalizeLogin = async (data: { token: string; id: number; name: string; email: string }) => {
     if (stayLoggedIn) {
@@ -258,10 +282,11 @@ function App() {
         body: JSON.stringify(body),
       })
 
-      const data = await response.json()
+      // Errors (e.g. "An account with this email already exists") come back as plain text, not JSON.
+      const data = await parseResponseData(response)
 
       if (!response.ok) {
-        setMessage(typeof data === 'string' ? data : 'Something went wrong')
+        setMessage(typeof data === 'string' && data ? data : 'Something went wrong')
         return
       }
 
@@ -317,6 +342,12 @@ function App() {
       setMessage('Google login failed. Please try again.')
     }
   }
+
+  // Keep the Google button's callback pointing at the latest handler, so it sees current state
+  // (e.g. the "Stay logged in" checkbox) rather than the state from when the button was drawn.
+  useEffect(() => {
+    googleCredentialHandlerRef.current = handleGoogleCredentialResponse
+  })
 
   const logout = () => {
     localStorage.removeItem('token')
@@ -389,19 +420,6 @@ function App() {
     })
   }
 
-  const parseResponseData = async (response: Response) => {
-    const text = await response.text()
-
-    if (!text) {
-      return null
-    }
-
-    try {
-      return JSON.parse(text)
-    } catch {
-      return text
-    }
-  }
 
   const createBusiness = async (name: string) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
@@ -581,7 +599,13 @@ function App() {
                 <div className="google-divider">
                   <span>or</span>
                 </div>
-                <div ref={googleButtonRef} className="google-button-container" />
+                {clientId ? (
+                  <div ref={setGoogleButtonEl} className="google-button-container" />
+                ) : (
+                  <p className="message">
+                    Google sign-in is not configured yet. Add VITE_GOOGLE_CLIENT_ID to frontend/.env and restart Vite.
+                  </p>
+                )}
               </>
             )}
 

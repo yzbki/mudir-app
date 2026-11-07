@@ -6,8 +6,11 @@ import com.youzbaki.mudir.auth.dto.LoginRequest;
 import com.youzbaki.mudir.auth.dto.RegisterRequest;
 import com.youzbaki.mudir.auth.dto.UserResponse;
 import com.youzbaki.mudir.security.JwtService;
+import com.youzbaki.mudir.user.AccountRules;
+import com.youzbaki.mudir.user.EmailAlreadyRegisteredException;
 import com.youzbaki.mudir.user.User;
 import com.youzbaki.mudir.user.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,20 +37,32 @@ public class AuthService {
         this.googleTokenVerifier = googleTokenVerifier;
     }
 
+    /**
+     * Creates a password account. One email = one account: this rejects any email that already has an
+     * account, however it was created (sign-up, Google login, or a manager adding an employee).
+     */
     public AuthResponse register(RegisterRequest request) {
-        String normalizedEmail = normalizeEmail(request.email());
-
-        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
-            throw new IllegalArgumentException("Email already registered");
+        if (request == null) {
+            throw new IllegalArgumentException("Name, email and password are required");
         }
 
-        User user = new User(
-                normalizedEmail,
-                passwordEncoder.encode(request.password()),
-                request.name()
-        );
+        String name = AccountRules.requireName(request.name());
+        String normalizedEmail = AccountRules.requireValidEmail(request.email());
+        String password = AccountRules.requireValidPassword(request.password());
 
-        userRepository.save(user);
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
+            throw new EmailAlreadyRegisteredException();
+        }
+
+        User user = new User(normalizedEmail, passwordEncoder.encode(password), name);
+
+        try {
+            // saveAndFlush so the unique constraint fires here, not at commit, if a concurrent
+            // sign-up for the same email slipped past the check above.
+            userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new EmailAlreadyRegisteredException();
+        }
 
         String token = jwtService.generateToken(user.getEmail());
 
@@ -62,7 +77,7 @@ public class AuthService {
     public AuthResponse login(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.email());
 
-        User user = userRepository.findByEmail(normalizedEmail)
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new BadCredentialsException("Invalid email or password"));
 
         if (user.getPassword() == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -83,7 +98,7 @@ public class AuthService {
         GoogleTokenVerifier.VerifiedGoogleUser googleUser = googleTokenVerifier.verify(credential);
         String normalizedEmail = normalizeEmail(googleUser.email());
 
-        User user = userRepository.findByEmail(normalizedEmail)
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseGet(() -> userRepository.save(new User(
                         normalizedEmail,
                         null,
@@ -103,7 +118,7 @@ public class AuthService {
     }
 
     public UserResponse getCurrentUser(String email) {
-        User user = userRepository.findByEmail(normalizeEmail(email))
+        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         return new UserResponse(
@@ -114,7 +129,7 @@ public class AuthService {
     }
 
     public UserResponse updateAccountName(String email, String newName) {
-        User user = userRepository.findByEmail(normalizeEmail(email))
+        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         if (newName == null || newName.trim().isEmpty()) {
@@ -132,14 +147,14 @@ public class AuthService {
     }
 
     public void deleteAccount(String email) {
-        User user = userRepository.findByEmail(normalizeEmail(email))
+        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
         userRepository.delete(user);
     }
 
     private String normalizeEmail(String email) {
-        return email == null ? "" : email.trim().toLowerCase(Locale.ROOT);
+        return AccountRules.normalizeEmail(email);
     }
 
     private String buildDisplayNameFromEmail(String email) {

@@ -6,5 +6,9 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    Optional<User> findByEmail(String email);
+    /**
+     * Case-insensitive so an address always resolves to the same account, even for rows
+     * stored before emails were normalized.
+     */
+    Optional<User> findByEmailIgnoreCase(String email);
 }

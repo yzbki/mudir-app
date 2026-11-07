@@ -9,8 +9,12 @@ import com.youzbaki.mudir.business.dto.BusinessResponse;
 import com.youzbaki.mudir.business.dto.BusinessSettingsRequest;
 import com.youzbaki.mudir.business.dto.BusinessShiftRequest;
 import com.youzbaki.mudir.business.dto.BusinessShiftResponse;
+import com.youzbaki.mudir.user.AccountRules;
+import com.youzbaki.mudir.user.EmailAlreadyRegisteredException;
 import com.youzbaki.mudir.user.User;
 import com.youzbaki.mudir.user.UserRepository;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,16 +36,19 @@ public class BusinessService {
     private final BusinessMemberRepository businessMemberRepository;
     private final BusinessShiftRepository businessShiftRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public BusinessService(
             BusinessRepository businessRepository,
             BusinessMemberRepository businessMemberRepository,
             BusinessShiftRepository businessShiftRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder) {
         this.businessRepository = businessRepository;
         this.businessMemberRepository = businessMemberRepository;
         this.businessShiftRepository = businessShiftRepository;
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -99,20 +106,16 @@ public class BusinessService {
             throw new IllegalArgumentException("Cannot assign OWNER role to another user");
         }
 
-        String normalizedEmail = request.email() == null ? null : request.email().trim().toLowerCase();
-
         User targetUser;
         if (request.userId() != null) {
             targetUser = userRepository.findById(request.userId())
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        } else if (normalizedEmail != null && !normalizedEmail.isBlank()) {
-            targetUser = userRepository.findByEmail(normalizedEmail)
-                    .orElseGet(() -> {
-                        String displayName = request.name() == null || request.name().isBlank()
-                                ? buildDisplayNameFromEmail(normalizedEmail)
-                                : request.name().trim();
-                        return userRepository.save(new User(normalizedEmail, null, displayName));
-                    });
+        } else if (request.email() != null && !request.email().isBlank()) {
+            String normalizedEmail = AccountRules.requireValidEmail(request.email());
+            // An existing account (sign-up, Google, or added earlier) is linked as-is. Its password is
+            // never set or changed here — otherwise a manager could take over anyone's account by "adding" them.
+            targetUser = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                    .orElseGet(() -> createEmployeeAccount(normalizedEmail, request));
         } else {
             throw new IllegalArgumentException("User ID or email is required");
         }
@@ -446,6 +449,21 @@ public class BusinessService {
                 shift.getStartTime(),
                 shift.getEndTime()
         );
+    }
+
+    /** Creates a brand-new password account for an employee added by a manager. */
+    private User createEmployeeAccount(String normalizedEmail, BusinessMemberRequest request) {
+        String password = AccountRules.requireValidPassword(request.password());
+        String displayName = request.name() == null || request.name().isBlank()
+                ? buildDisplayNameFromEmail(normalizedEmail)
+                : request.name().trim();
+
+        try {
+            return userRepository.saveAndFlush(new User(normalizedEmail, passwordEncoder.encode(password), displayName));
+        } catch (DataIntegrityViolationException e) {
+            // Someone registered this email between our lookup and the insert.
+            throw new EmailAlreadyRegisteredException();
+        }
     }
 
     private String buildDisplayNameFromEmail(String email) {

@@ -208,16 +208,19 @@ function Employees({ user, businesses, selectedBusinessId, refreshBusinesses }: 
         body: JSON.stringify({
           email: normalizedEmail,
           name: trimmedName,
-          password: trimmedPassword,
+          // Sent exactly as typed: login doesn't trim, so trimming here would break logins
+          // for passwords with leading/trailing spaces.
+          password: employeePassword,
           role: employeePermission,
           title: trimmedRole,
         }),
       })
 
-      const data = await response.json()
+      // Errors come back as plain text, so read text rather than JSON.
+      const text = await response.text()
 
       if (!response.ok) {
-        throw new Error(typeof data === 'string' ? data : 'Failed to add employee')
+        throw new Error(text || 'Failed to add employee')
       }
 
       setMessage(
