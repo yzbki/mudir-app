@@ -40,7 +40,7 @@ public class AuthController {
     @PostMapping("/google")
     public ResponseEntity<?> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
         try {
-            return ResponseEntity.ok(authService.loginWithGoogle(request.email()));
+            return ResponseEntity.ok(authService.loginWithGoogle(request.credential()));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(401).body(e.getMessage());
         }

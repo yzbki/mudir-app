@@ -287,26 +287,26 @@ function App() {
     }
   }
 
-  const handleGoogleLogin = async (googleEmail: string) => {
-    const normalizedEmail = googleEmail.trim()
-
-    if (!normalizedEmail) {
-      setMessage('Google did not return an email.')
+  // The raw Google ID token is sent to the backend, which verifies its signature,
+  // audience and email_verified claim before issuing a session.
+  const handleGoogleCredentialResponse = async (response: { credential: string }) => {
+    if (!response.credential) {
+      setMessage('Google sign-in did not return a credential.')
       return
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+      const loginResponse = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: normalizedEmail }),
+        body: JSON.stringify({ credential: response.credential }),
       })
 
-      const data = await response.json()
+      const data = await parseResponseData(loginResponse)
 
-      if (!response.ok) {
+      if (!loginResponse.ok) {
         setMessage(typeof data === 'string' ? data : 'Google login failed')
         return
       }
@@ -316,26 +316,6 @@ function App() {
       console.error(error)
       setMessage('Google login failed. Please try again.')
     }
-  }
-
-  const decodeGoogleCredential = (credential: string) => {
-    const base64Url = credential.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=')
-    const decoded = window.atob(padded)
-    return JSON.parse(decoded) as { email?: string; name?: string }
-  }
-
-  const handleGoogleCredentialResponse = async (response: { credential: string }) => {
-    const payload = decodeGoogleCredential(response.credential)
-    const email = payload.email
-
-    if (!email) {
-      setMessage('Google did not return a valid email address.')
-      return
-    }
-
-    await handleGoogleLogin(email)
   }
 
   const logout = () => {

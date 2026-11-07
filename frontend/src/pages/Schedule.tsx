@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
 import type { Business, BusinessMember, BusinessRole } from '../types/Business'
@@ -40,6 +40,8 @@ const getStartOfWeek = (date: Date) => {
   return start
 }
 
+const getStartOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1)
+
 const addDays = (date: Date, days: number) => {
   const next = new Date(date)
   next.setDate(next.getDate() + days)
@@ -51,8 +53,51 @@ const parseDateValue = (value: string) => {
   return new Date(year, month - 1, day)
 }
 
+// e.g. "Nov 2 – Nov 8, 2026" (start year shown only when the week spans two years)
+const formatWeekRange = (start: Date, end: Date) => {
+  const sameYear = start.getFullYear() === end.getFullYear()
+  const startLabel = new Intl.DateTimeFormat('en-US', sameYear
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: 'numeric' }).format(start)
+  const endLabel = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(end)
+  return `${startLabel} – ${endLabel}`
+}
+
+type ShiftDraft = {
+  userId: string
+  date: string
+  startTime: string
+  endTime: string
+}
+
+// Shift times are free text ("9:00", "17:30", "9am", "5:30 PM"); parse what we can so a day's
+// shifts list in chronological order. Unparseable values sort last.
+const parseTimeToMinutes = (value: string) => {
+  const match = value.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/)
+  if (!match) return Number.MAX_SAFE_INTEGER
+
+  let hours = Number(match[1]) % 24
+  const minutes = Number(match[2] ?? 0)
+  const meridiem = match[3]
+  if (meridiem === 'pm' && hours < 12) hours += 12
+  if (meridiem === 'am' && hours === 12) hours = 0
+  return hours * 60 + minutes
+}
+
+// Stable per-employee accent so the same person is easy to spot across the week.
+const EMPLOYEE_ACCENTS = ['#4f8cff', '#2fbf8f', '#f2a93b', '#e5677a', '#a37bf5', '#36b6d1', '#d98b4a', '#8bc34a']
+const getEmployeeAccent = (userId: number) => EMPLOYEE_ACCENTS[Math.abs(userId) % EMPLOYEE_ACCENTS.length]
+
 function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
   const [selectedScheduleDate, setSelectedScheduleDate] = useState(new Date())
+  // The month the calendar is showing. Controlled so that jumping to a date
+  // (Today button, week arrows, day headers) also scrolls the calendar to it.
+  const [calendarActiveStartDate, setCalendarActiveStartDate] = useState(() => getStartOfMonth(new Date()))
+
+  const goToDate = (date: Date) => {
+    setSelectedScheduleDate(date)
+    setCalendarActiveStartDate(getStartOfMonth(date))
+  }
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [selectedShiftDate, setSelectedShiftDate] = useState(() => formatDateKey(new Date()))
   const [shiftStart, setShiftStart] = useState('')
@@ -60,6 +105,9 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
   const [members, setMembers] = useState<BusinessMember[]>([])
   const [shifts, setShifts] = useState<Shift[]>([])
   const [selectedShiftId, setSelectedShiftId] = useState<number | null>(null)
+  const [editingShiftId, setEditingShiftId] = useState<number | null>(null)
+  const [shiftDraft, setShiftDraft] = useState<ShiftDraft | null>(null)
+  const [isSavingShift, setIsSavingShift] = useState(false)
   const [message, setMessage] = useState('')
 
   const currentBusiness = businesses.find((business) => business.id === selectedBusinessId) || null
@@ -163,9 +211,13 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
     return shiftDate >= weekStartDate && shiftDate <= weekEndDate
   })
 
+  const todayKey = formatDateKey(new Date())
+
   const getShiftListForDate = (day: Date) => {
     const key = formatDateKey(day)
-    return shiftsForSelectedWeek.filter((shift) => shift.date === key)
+    return shiftsForSelectedWeek
+      .filter((shift) => shift.date === key)
+      .sort((a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime) || a.startTime.localeCompare(b.startTime))
   }
 
   const handleScheduleShift = async () => {
@@ -226,6 +278,81 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
       await loadShifts()
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Failed to create shift')
+    }
+  }
+
+  const startEditingShift = (shift: Shift) => {
+    setSelectedShiftId(shift.id)
+    setEditingShiftId(shift.id)
+    setShiftDraft({
+      userId: String(shift.userId),
+      date: shift.date,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+    })
+  }
+
+  const cancelEditingShift = () => {
+    setEditingShiftId(null)
+    setShiftDraft(null)
+  }
+
+  const handleUpdateShift = async (shiftId: number) => {
+    if (!selectedBusinessId || !canManageSchedule || !shiftDraft) {
+      return
+    }
+
+    const startTime = shiftDraft.startTime.trim()
+    const endTime = shiftDraft.endTime.trim()
+
+    if (!shiftDraft.userId || !shiftDraft.date || !startTime || !endTime) {
+      setMessage('Employee, date, start and end time are all required.')
+      return
+    }
+
+    const token = getToken()
+    if (!token) {
+      setMessage('You must be signed in to edit a shift.')
+      return
+    }
+
+    setIsSavingShift(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/businesses/${selectedBusinessId}/shifts/${shiftId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId: Number(shiftDraft.userId),
+          date: shiftDraft.date,
+          startTime,
+          endTime,
+        }),
+      })
+
+      const text = await response.text()
+      let data: unknown = text
+      try {
+        data = text ? JSON.parse(text) : null
+      } catch {
+        // plain-text error body
+      }
+
+      if (!response.ok) {
+        throw new Error(typeof data === 'string' && data ? data : 'Failed to update shift')
+      }
+
+      setMessage('Shift updated successfully.')
+      setEditingShiftId(null)
+      setShiftDraft(null)
+      setSelectedShiftId(null)
+      await loadShifts()
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Failed to update shift')
+    } finally {
+      setIsSavingShift(false)
     }
   }
 
@@ -290,11 +417,27 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
       </div>
 
       <div className="business-section schedule-section">
-        <h2>Schedule</h2>
+        <div className="schedule-section-header">
+          <h2>Schedule</h2>
+          <button
+            type="button"
+            className="calendar-reset-button"
+            onClick={() => goToDate(new Date())}
+            title="Jump back to today's date"
+          >
+            Today
+          </button>
+        </div>
 
         <div className="schedule-layout">
           <Calendar
             value={selectedScheduleDate}
+            activeStartDate={calendarActiveStartDate}
+            onActiveStartDateChange={({ activeStartDate }) => {
+              if (activeStartDate) {
+                setCalendarActiveStartDate(activeStartDate)
+              }
+            }}
             onChange={(value) => {
               if (value instanceof Date) {
                 setSelectedScheduleDate(value)
@@ -316,7 +459,6 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
                   {members.map((member) => (
                     <option key={member.userId} value={String(member.userId)}>
                       {member.userName}
-                      {member.title ? ` • ${member.title}` : ''}
                     </option>
                   ))}
                 </select>
@@ -352,61 +494,228 @@ function Schedule({ user, businesses, selectedBusinessId }: ScheduleProps) {
         </div>
 
         <div className="weekly-schedule-wrapper">
-          <div className="weekly-schedule-header">{`Week of ${new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(weekStartDate)}`}</div>
+          <div className="weekly-schedule-toolbar">
+            <div className="weekly-schedule-heading">
+              <span className="weekly-schedule-eyebrow">Weekly planner</span>
+              <h3 className="weekly-schedule-range">{formatWeekRange(weekStartDate, weekEndDate)}</h3>
+              <span className="weekly-schedule-summary">
+                {shiftsForSelectedWeek.length === 0
+                  ? 'No shifts scheduled this week'
+                  : `${shiftsForSelectedWeek.length} shift${shiftsForSelectedWeek.length === 1 ? '' : 's'} this week`}
+              </span>
+            </div>
 
-          <div className="weekly-schedule-grid">
-            {currentWeekDates.map((date) => {
-              const isToday = date.toDateString() === new Date().toDateString()
-              const dayShifts = getShiftListForDate(date)
-
-              return (
-                <div key={date.toDateString()} className={`weekly-day-box ${isToday ? 'is-today' : ''}`}>
-                  <div className="weekly-day-header">
-                    <span className="weekly-day-name">
-                      {new Intl.DateTimeFormat('en-US', { weekday: 'short' }).format(date)}
-                    </span>
-                    <span className="weekly-day-date">
-                      {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' }).format(date)}
-                    </span>
-                  </div>
-
-                  {dayShifts.length === 0 ? (
-                    <div className="weekly-day-content">No shifts</div>
-                  ) : (
-                    <ul className="shift-list">
-                      {dayShifts.map((shift) => {
-                        const employeeName = shift.userName || 'Employee'
-                        const employeeTitle = shift.title?.trim() || 'Employee'
-                        const isSelected = selectedShiftId === shift.id
-
-                        return (
-                          <li key={shift.id} className={`shift-pill ${isSelected ? 'is-selected' : ''}`}>
-                            <button
-                              type="button"
-                              className="shift-pill-button"
-                              onClick={() => setSelectedShiftId(isSelected ? null : shift.id)}
-                            >
-                              {employeeName}, {employeeTitle}, {shift.startTime} to {shift.endTime}
-                            </button>
-
-                            {canManageSchedule && isSelected && (
-                              <button
-                                type="button"
-                                className="shift-delete-button"
-                                onClick={() => handleDeleteShift(shift.id)}
-                              >
-                                Delete Shift
-                              </button>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  )}
-                </div>
-              )
-            })}
+            <div className="weekly-schedule-nav">
+              <button
+                type="button"
+                className="week-nav-button"
+                onClick={() => goToDate(addDays(selectedScheduleDate, -7))}
+                aria-label="Previous week"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                className="week-nav-button week-nav-today"
+                onClick={() => goToDate(new Date())}
+              >
+                This week
+              </button>
+              <button
+                type="button"
+                className="week-nav-button"
+                onClick={() => goToDate(addDays(selectedScheduleDate, 7))}
+                aria-label="Next week"
+              >
+                ›
+              </button>
+            </div>
           </div>
+
+          {[currentWeekDates.slice(0, 4), currentWeekDates.slice(4)].map((rowDates, rowIndex) => (
+            <div
+              key={rowIndex}
+              className={`weekly-schedule-row ${rowIndex === 0 ? 'weekly-schedule-row-weekdays' : 'weekly-schedule-row-weekend'}`}
+            >
+              {rowDates.map((date) => {
+                const dateKey = formatDateKey(date)
+                const isToday = dateKey === todayKey
+                const isSelectedDay = dateKey === selectedShiftDate
+                const isWeekend = date.getDay() === 0 || date.getDay() === 6
+                const dayShifts = getShiftListForDate(date)
+
+                return (
+                  <section
+                    key={dateKey}
+                    className={[
+                      'weekly-day-box',
+                      isToday ? 'is-today' : '',
+                      isSelectedDay ? 'is-selected-day' : '',
+                      isWeekend ? 'is-weekend' : '',
+                    ].join(' ')}
+                    aria-label={new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).format(date)}
+                  >
+                    <button
+                      type="button"
+                      className="weekly-day-header"
+                      onClick={() => goToDate(date)}
+                      title="Select this day"
+                    >
+                      <span className="weekly-day-number">{date.getDate()}</span>
+                      <span className="weekly-day-label">
+                        <span className="weekly-day-name">
+                          {new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(date)}
+                        </span>
+                        <span className="weekly-day-date">
+                          {new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date)}
+                        </span>
+                      </span>
+                      <span className="weekly-day-badges">
+                        {isToday && <span className="weekly-day-badge is-today-badge">Today</span>}
+                        {dayShifts.length > 0 && (
+                          <span className="weekly-day-badge">
+                            {dayShifts.length} shift{dayShifts.length === 1 ? '' : 's'}
+                          </span>
+                        )}
+                      </span>
+                    </button>
+
+                    {dayShifts.length === 0 ? (
+                      <div className="weekly-day-content">
+                        <span className="weekly-day-empty-dot" aria-hidden="true" />
+                        No shifts
+                      </div>
+                    ) : (
+                      <ul className="shift-list">
+                        {dayShifts.map((shift) => {
+                          const employeeName = shift.userName || 'Employee'
+                          const employeeTitle = shift.title?.trim() || 'Employee'
+                          const isSelected = selectedShiftId === shift.id
+                          const isEditing = canManageSchedule && editingShiftId === shift.id && shiftDraft !== null
+                          const accent = getEmployeeAccent(isEditing ? Number(shiftDraft.userId) : shift.userId)
+
+                          return (
+                            <li
+                              key={shift.id}
+                              className={`shift-card ${isSelected ? 'is-selected' : ''} ${isEditing ? 'is-editing' : ''}`}
+                              style={{ '--shift-accent': accent } as CSSProperties}
+                            >
+                              {isEditing ? (
+                                <form
+                                  className="shift-edit-form"
+                                  onSubmit={(event) => {
+                                    event.preventDefault()
+                                    handleUpdateShift(shift.id)
+                                  }}
+                                >
+                                  <label className="shift-edit-field">
+                                    <span>Employee</span>
+                                    <select
+                                      value={shiftDraft.userId}
+                                      onChange={(event) => setShiftDraft({ ...shiftDraft, userId: event.target.value })}
+                                    >
+                                      {members.map((member) => (
+                                        <option key={member.userId} value={String(member.userId)}>
+                                          {member.userName}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </label>
+
+                                  <label className="shift-edit-field">
+                                    <span>Date</span>
+                                    <input
+                                      type="date"
+                                      value={shiftDraft.date}
+                                      onChange={(event) => setShiftDraft({ ...shiftDraft, date: event.target.value })}
+                                    />
+                                  </label>
+
+                                  <div className="shift-edit-times">
+                                    <label className="shift-edit-field">
+                                      <span>Start</span>
+                                      <input
+                                        type="text"
+                                        value={shiftDraft.startTime}
+                                        onChange={(event) => setShiftDraft({ ...shiftDraft, startTime: event.target.value })}
+                                        placeholder="09:00"
+                                      />
+                                    </label>
+                                    <label className="shift-edit-field">
+                                      <span>End</span>
+                                      <input
+                                        type="text"
+                                        value={shiftDraft.endTime}
+                                        onChange={(event) => setShiftDraft({ ...shiftDraft, endTime: event.target.value })}
+                                        placeholder="17:00"
+                                      />
+                                    </label>
+                                  </div>
+
+                                  <div className="shift-card-actions">
+                                    <button type="submit" className="shift-action-button is-primary" disabled={isSavingShift}>
+                                      {isSavingShift ? 'Saving…' : 'Save'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="shift-action-button"
+                                      onClick={cancelEditingShift}
+                                      disabled={isSavingShift}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="shift-card-button"
+                                    onClick={() => {
+                                      setSelectedShiftId(isSelected ? null : shift.id)
+                                      cancelEditingShift()
+                                    }}
+                                    aria-expanded={canManageSchedule ? isSelected : undefined}
+                                  >
+                                    <span className="shift-card-time">
+                                      {shift.startTime}
+                                      <span className="shift-card-time-sep" aria-hidden="true">–</span>
+                                      {shift.endTime}
+                                    </span>
+                                    <span className="shift-card-name">{employeeName}</span>
+                                    <span className="shift-card-title">{employeeTitle}</span>
+                                  </button>
+
+                                  {canManageSchedule && isSelected && (
+                                    <div className="shift-card-actions">
+                                      <button
+                                        type="button"
+                                        className="shift-action-button"
+                                        onClick={() => startEditingShift(shift)}
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="shift-action-button is-danger"
+                                        onClick={() => handleDeleteShift(shift.id)}
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </section>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </div>
 

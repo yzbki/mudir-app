@@ -154,6 +154,21 @@ public class BusinessController {
         }
     }
 
+    @PutMapping("/{businessId}/shifts/{shiftId}")
+    public ResponseEntity<?> updateShift(
+            Authentication authentication,
+            @PathVariable Long businessId,
+            @PathVariable Long shiftId,
+            @RequestBody BusinessShiftRequest request) {
+        try {
+            User actor = userService.getUserByEmail(authentication.getName());
+            BusinessShiftResponse response = businessService.updateShift(actor, businessId, shiftId, request);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{businessId}/shifts/{shiftId}")
     public ResponseEntity<?> deleteShift(
             Authentication authentication,

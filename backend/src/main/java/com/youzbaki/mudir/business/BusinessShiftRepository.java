@@ -10,4 +10,5 @@ public interface BusinessShiftRepository extends JpaRepository<BusinessShift, Lo
     List<BusinessShift> findByBusiness(Business business);
     List<BusinessShift> findByBusinessAndDateBetween(Business business, LocalDate start, LocalDate end);
     boolean existsByBusinessAndUserAndDate(Business business, User user, LocalDate date);
+    boolean existsByBusinessAndUserAndDateAndIdNot(Business business, User user, LocalDate date, Long id);
 }

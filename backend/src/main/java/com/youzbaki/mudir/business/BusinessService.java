@@ -272,6 +272,56 @@ public class BusinessService {
     }
 
     @Transactional
+    public BusinessShiftResponse updateShift(User actor, Long businessId, Long shiftId, BusinessShiftRequest request) {
+        Business business = businessRepository.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Business not found"));
+
+        if (!isOwnerOrManager(actor, business)) {
+            throw new IllegalArgumentException("Only the business owner or a manager can edit shifts");
+        }
+
+        BusinessShift shift = businessShiftRepository.findById(shiftId)
+                .orElseThrow(() -> new IllegalArgumentException("Shift not found"));
+
+        if (!shift.getBusiness().getId().equals(business.getId())) {
+            throw new IllegalArgumentException("Shift does not belong to this business");
+        }
+
+        if (request == null || request.userId() == null) {
+            throw new IllegalArgumentException("Employee is required");
+        }
+
+        if (request.date() == null) {
+            throw new IllegalArgumentException("Shift date is required");
+        }
+
+        String startTime = request.startTime() == null ? "" : request.startTime().trim();
+        String endTime = request.endTime() == null ? "" : request.endTime().trim();
+
+        if (startTime.isEmpty() || endTime.isEmpty()) {
+            throw new IllegalArgumentException("Shift start and end times are required");
+        }
+
+        User targetUser = userRepository.findById(request.userId())
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found"));
+
+        BusinessMember membership = businessMemberRepository.findByBusinessAndUser(business, targetUser)
+                .orElseThrow(() -> new IllegalArgumentException("Employee is not assigned to this business"));
+
+        if (businessShiftRepository.existsByBusinessAndUserAndDateAndIdNot(business, targetUser, request.date(), shift.getId())) {
+            throw new IllegalArgumentException("A shift for this employee on this date already exists");
+        }
+
+        shift.setUser(targetUser);
+        shift.setDate(request.date());
+        shift.setStartTime(startTime);
+        shift.setEndTime(endTime);
+
+        BusinessShift saved = businessShiftRepository.save(shift);
+        return toShiftResponse(saved, membership);
+    }
+
+    @Transactional
     public void deleteShift(User actor, Long businessId, Long shiftId) {
         Business business = businessRepository.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Business not found"));

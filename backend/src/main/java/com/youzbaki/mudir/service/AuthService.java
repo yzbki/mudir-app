@@ -1,5 +1,6 @@
 package com.youzbaki.mudir.service;
 
+import com.youzbaki.mudir.auth.GoogleTokenVerifier;
 import com.youzbaki.mudir.auth.dto.AuthResponse;
 import com.youzbaki.mudir.auth.dto.LoginRequest;
 import com.youzbaki.mudir.auth.dto.RegisterRequest;
@@ -20,14 +21,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final GoogleTokenVerifier googleTokenVerifier;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            GoogleTokenVerifier googleTokenVerifier) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.googleTokenVerifier = googleTokenVerifier;
     }
 
     public AuthResponse register(RegisterRequest request) {
@@ -75,18 +79,17 @@ public class AuthService {
         );
     }
 
-    public AuthResponse loginWithGoogle(String email) {
-        String normalizedEmail = normalizeEmail(email);
-
-        if (normalizedEmail.isBlank() || !normalizedEmail.contains("@")) {
-            throw new BadCredentialsException("Google email is required");
-        }
+    public AuthResponse loginWithGoogle(String credential) {
+        GoogleTokenVerifier.VerifiedGoogleUser googleUser = googleTokenVerifier.verify(credential);
+        String normalizedEmail = normalizeEmail(googleUser.email());
 
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseGet(() -> userRepository.save(new User(
                         normalizedEmail,
                         null,
-                        buildDisplayNameFromEmail(normalizedEmail)
+                        googleUser.name() != null
+                                ? googleUser.name()
+                                : buildDisplayNameFromEmail(normalizedEmail)
                 )));
 
         String token = jwtService.generateToken(user.getEmail());
